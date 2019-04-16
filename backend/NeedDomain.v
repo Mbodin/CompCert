@@ -794,9 +794,13 @@ Lemma normalize_sound:
 Proof.
   intros. destruct x; simpl in *. 
 - auto.
-- unfold Val.normalize. destruct v; try (destruct ty; now auto).
-  destruct w; try contradiction.
+- unfold Val.normalize. destruct v. 
+  auto.
+  destruct w; try contradiction. destruct ty; auto.
   destruct ty; auto.
+  destruct ty; auto.
+  destruct ty; auto.
+  destruct ty; destruct Archi.ptr64; auto.
 - apply Val.normalize_lessdef; auto.
 Qed.
 
