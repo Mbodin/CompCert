@@ -848,21 +848,16 @@ Proof.
   destruct x; simpl in H0; try discriminate. inv H0.
   exists (Vfloat (Float.of_intu i)); split; auto.
   econstructor. eauto.
-  set (fm := Float.of_intu Float.ox8000_0000).
-  assert (eval_expr ge sp e m (Vint i :: le) (Eletvar O) (Vint i)).
-    constructor. auto.
-  eapply eval_Econdition with (va := Int.ltu i Float.ox8000_0000).
-  eauto with evalexpr.
-  destruct (Int.ltu i Float.ox8000_0000) eqn:?.
-  rewrite Float.of_intu_of_int_1; auto.
-  unfold floatofint. EvalOp.
-  exploit (eval_addimm (Int.neg Float.ox8000_0000) (Vint i :: le) (Eletvar 0)); eauto.
-  simpl. intros [v [A B]]. inv B.
-  unfold addf. EvalOp.
-  constructor. unfold floatofint. EvalOp. simpl; eauto.
-  constructor. EvalOp. simpl; eauto. constructor. simpl; eauto.
-  fold fm. rewrite Float.of_intu_of_int_2; auto.
-  rewrite Int.sub_add_opp. auto.
+  assert (eval_expr ge sp e m (Vint i :: le) (Eletvar O) (Vint i)) by (constructor; auto).
+  exploit (eval_andimm Float.ox7FFF_FFFF (Vint i :: le) (Eletvar 0)); eauto.
+  simpl. intros [v1 [A1 B1]]. inv B1.
+  exploit (eval_andimm Float.ox8000_0000 (Vint i :: le) (Eletvar 0)); eauto.
+  simpl. intros [v2 [A2 B2]]. inv B2.
+  unfold subf. econstructor.
+  constructor. econstructor. constructor. eexact A1. constructor. simpl; eauto.
+  constructor. econstructor. constructor. eexact A2. constructor. simpl; eauto.
+  constructor.
+  simpl. rewrite Float.of_intu_of_int_3. auto.
 Qed.
 
 Theorem eval_intofsingle:
