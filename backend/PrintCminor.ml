@@ -270,10 +270,10 @@ let rec print_stmt p s =
       fprintf p "@[<v 3>{{ %a@;<0 -3>}}@]"
               print_stmt s
   | Sexit n ->
-      fprintf p "exit %d;" (Nat.to_int n)
+      fprintf p "exit %d;" (Camlcoq.Nat.to_int n)
   | Sswitch(long, e, cases, dfl) ->
     let print_case (n,x) =
-      let x = Nat.to_int x in
+      let x = Camlcoq.Nat.to_int x in
       if long then
         fprintf p "@ case %LdLL: exit %d;" (Z.to_int64 n) x
       else
@@ -281,7 +281,7 @@ let rec print_stmt p s =
       fprintf p "@[<v 2>switch%s (%a) {"
         (if long then "l" else "") print_expr e;
       List.iter print_case cases;
-      fprintf p "@ default: exit %d;\n" (Nat.to_int dfl);
+      fprintf p "@ default: exit %d;\n" (Camlcoq.Nat.to_int dfl);
       fprintf p "@;<0 -2>}@]"
   | Sreturn None ->
       fprintf p "return;"
