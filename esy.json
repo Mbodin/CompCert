@@ -27,11 +27,32 @@
     "@opam/menhir": "20181113",
     "ocaml": "4.8.0",
     "@opam/depgraph": "*",
-    "@opam/dune": ">=1.9"
+    "@opam/dune": ">=1.9",
+    "coq-flocq": "3.2.0"
   },
   "devDependencies": {
     "@opam/utop": "*",
     "@opam/odoc": "*",
     "ocaml": "4.8.0"
+  },
+  "resolutions": {
+    "coq-flocq": {
+      "source": "git:git@gitlab.inria.fr:flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de",
+      "version": "3.2.0",
+      "override": {
+         "dependencies": {
+            "@opam/coq": "8.10.1"
+          },
+        "buildEnv": {
+          "COQBIN": "#{@opam/coq.bin}"
+        },
+        "build": [
+            ["./autogen.sh"],
+            ["./configure"],
+            ["./remake", "--jobs=2"],
+            ["./remake", "install"]
+          ]
+        }
+    }
   }
 }

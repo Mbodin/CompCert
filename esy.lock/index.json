@@ -1,5 +1,5 @@
 {
-  "checksum": "4a3fab9622d8b69b28a684784206ece8",
+  "checksum": "7914d12bbbaab1d2ac905d8c54032ffb",
   "root": "compcert@link-dev:./esy.json",
   "node": {
     "ocaml@4.8.0@d41d8cd9": {
@@ -16,6 +16,33 @@
       "dependencies": [],
       "devDependencies": []
     },
+    "coq-flocq@git:git__AT__gitlab.inria.fr:flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de@e5c1503c": {
+      "id":
+        "coq-flocq@git:git__AT__gitlab.inria.fr:flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de@e5c1503c",
+      "name": "coq-flocq",
+      "version":
+        "git:git@gitlab.inria.fr:flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de",
+      "source": {
+        "type": "install",
+        "source": [
+          "git:git@gitlab.inria.fr:flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de"
+        ]
+      },
+      "overrides": [
+        {
+          "dependencies": { "@opam/coq": "8.10.1" },
+          "buildEnv": { "COQBIN": "#{@opam/coq.bin}" },
+          "build": [
+            [ "./autogen.sh" ],
+            [ "./configure" ],
+            [ "./remake", "--jobs=2" ],
+            [ "./remake", "install" ]
+          ]
+        }
+      ],
+      "dependencies": [ "@opam/coq@opam:8.10.1@e04e5c77" ],
+      "devDependencies": []
+    },
     "compcert@link-dev:./esy.json": {
       "id": "compcert@link-dev:./esy.json",
       "name": "compcert",
@@ -23,7 +50,9 @@
       "source": { "type": "link-dev", "path": ".", "manifest": "esy.json" },
       "overrides": [],
       "dependencies": [
-        "ocaml@4.8.0@d41d8cd9", "@opam/menhir@opam:20181113@0c8257a8",
+        "ocaml@4.8.0@d41d8cd9",
+        "coq-flocq@git:git__AT__gitlab.inria.fr:flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de@e5c1503c",
+        "@opam/menhir@opam:20181113@0c8257a8",
         "@opam/dune@opam:1.11.4@21d66ccd",
         "@opam/depgraph@opam:0.1.0@bc9dcbeb",
         "@opam/coq@opam:8.10.1@e04e5c77"

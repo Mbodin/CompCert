@@ -17,7 +17,7 @@
 (** Architecture-dependent parameters for x86 in 64-bit mode *)
 
 Require Import ZArith.
-(*From Flocq*)
+From Flocq
 Require Import Binary Bits.
 
 Definition ptr64 := true.

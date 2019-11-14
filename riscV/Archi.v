@@ -17,7 +17,7 @@
 (** Architecture-dependent parameters for RISC-V *)
 
 Require Import ZArith.
-(*From Flocq*)
+From Flocq
 Require Import Binary Bits.
 
 Parameter ptr64 : bool.

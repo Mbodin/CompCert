@@ -22,10 +22,9 @@ ARCHDIRS=$(ARCH)_$(BITSIZE) $(ARCH)
 endif
 
 DIRS=lib common $(ARCHDIRS) backend cfrontend driver \
-  flocq/Core flocq/Prop flocq/Calc flocq/IEEE754 \
   exportclight cparser cparser/MenhirLib
 
-RECDIRS=lib common $(ARCHDIRS) backend cfrontend driver flocq exportclight cparser
+RECDIRS=lib common $(ARCHDIRS) backend cfrontend driver exportclight cparser
 
 COQINCLUDES=$(foreach d, $(RECDIRS), -R $(d) compcert.$(d))
 
@@ -41,14 +40,6 @@ VPATH=$(DIRS)
 GPATH=$(DIRS)
 
 # Flocq
-
-FLOCQ=\
-  Raux.v Zaux.v Defs.v Digits.v Float_prop.v FIX.v FLT.v FLX.v FTZ.v \
-  Generic_fmt.v Round_pred.v Round_NE.v Ulp.v Core.v \
-  Bracket.v Div.v Operations.v Round.v Sqrt.v \
-  Div_sqrt_error.v Mult_error.v Plus_error.v \
-  Relative.v Sterbenz.v Round_odd.v Double_rounding.v \
-  Binary.v Bits.v
 
 # General-purpose libraries (in lib/)
 
@@ -119,7 +110,7 @@ DRIVER=Compopts.v Compiler.v Complements.v
 
 # All source files
 
-FILES=$(VLIB) $(COMMON) $(BACKEND) $(CFRONTEND) $(DRIVER) $(FLOCQ) \
+FILES=$(VLIB) $(COMMON) $(BACKEND) $(CFRONTEND) $(DRIVER) \
   $(PARSERVALIDATOR) $(PARSER)
 
 # Generated source files
@@ -145,7 +136,6 @@ endif
 proof: $(FILES:.v=.vo)
 
 # Turn off some warnings for compiling Flocq
-flocq/%.vo: COQCOPTS+=-w -compatibility-notation
 
 extraction: extraction/STAMP
 
