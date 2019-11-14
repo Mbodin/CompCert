@@ -24,8 +24,7 @@
   },
   "dependencies": {
     "@opam/coq": "8.10.1",
-    "@opam/menhir": "*",
-    "@opam/coq-menhirlib": "*",
+    "@opam/menhir": "20181113",
     "ocaml": "4.8.0",
     "@opam/depgraph": "*",
     "@opam/dune": ">=1.9"
@@ -34,8 +33,5 @@
     "@opam/utop": "*",
     "@opam/odoc": "*",
     "ocaml": "4.8.0"
-  },
-  "resolutions": {
-    "@opam/coq-menhirlib": "git://gitlab.inria.fr/fpottier/coq-menhirlib/opam#ca0655b2f96057a271fb5c9a254a38d195b4a7f9"
   }
 }
