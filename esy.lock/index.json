@@ -1,5 +1,5 @@
 {
-  "checksum": "7914d12bbbaab1d2ac905d8c54032ffb",
+  "checksum": "1c95006c986c9bde97fefb129441085d",
   "root": "compcert@link-dev:./esy.json",
   "node": {
     "ocaml@4.8.0@d41d8cd9": {
@@ -16,9 +16,9 @@
       "dependencies": [],
       "devDependencies": []
     },
-    "coq-flocq@git:git__AT__gitlab.inria.fr:flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de@e5c1503c": {
+    "coq-flocq@git:git__AT__gitlab.inria.fr:flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de@40e6b77e": {
       "id":
-        "coq-flocq@git:git__AT__gitlab.inria.fr:flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de@e5c1503c",
+        "coq-flocq@git:git__AT__gitlab.inria.fr:flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de@40e6b77e",
       "name": "coq-flocq",
       "version":
         "git:git@gitlab.inria.fr:flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de",
@@ -34,7 +34,10 @@
           "buildEnv": { "COQBIN": "#{@opam/coq.bin}" },
           "build": [
             [ "./autogen.sh" ],
-            [ "./configure" ],
+            [
+              "./configure",
+              "--libdir=#{@opam/coq.lib}/coq/user-contrib/Flocq"
+            ],
             [ "./remake", "--jobs=2" ],
             [ "./remake", "install" ]
           ]
@@ -51,7 +54,7 @@
       "overrides": [],
       "dependencies": [
         "ocaml@4.8.0@d41d8cd9",
-        "coq-flocq@git:git__AT__gitlab.inria.fr:flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de@e5c1503c",
+        "coq-flocq@git:git__AT__gitlab.inria.fr:flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de@40e6b77e",
         "@opam/menhir@opam:20181113@0c8257a8",
         "@opam/dune@opam:1.11.4@21d66ccd",
         "@opam/depgraph@opam:0.1.0@bc9dcbeb",

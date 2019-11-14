@@ -7,6 +7,10 @@
     "HOME": "#{self.target_dir}"
   },
   "esy": {
+    "buildEnv": {
+      "COQBIN": "#{@opam/coq.bin}/",
+      "COQLIB": "#{@opam/coq.lib}/coq/"
+    },
     "build":[
       ["./configure", "x86_64-macosx"],
       ["make", "-j", "4"]
@@ -48,7 +52,7 @@
         },
         "build": [
             ["./autogen.sh"],
-            ["./configure"],
+            ["./configure", "--libdir=#{@opam/coq.lib}/coq/user-contrib/Flocq"],
             ["./remake", "--jobs=2"],
             ["./remake", "install"]
           ]
