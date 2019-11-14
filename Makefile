@@ -181,9 +181,9 @@ documentation: $(FILES)
           $(filter-out doc/coq2html cparser/Parser.v, $^)
 
 tools/ndfun: tools/ndfun.ml
-	ocamlopt -o tools/ndfun str.cmxa tools/ndfun.ml
+	ocamlopt -warn-error -44 -o tools/ndfun str.cmxa tools/ndfun.ml
 tools/modorder: tools/modorder.ml
-	ocamlopt -o tools/modorder str.cmxa tools/modorder.ml
+	ocamlopt -warn-error -44 -o tools/modorder str.cmxa tools/modorder.ml
 
 latexdoc:
 	cd doc; $(COQDOC) --latex -o doc/doc.tex -g $(FILES)
