@@ -503,7 +503,7 @@ missingtools=false
 echo "Testing Coq... " | tr -d '\n'
 coq_ver=$(${COQBIN}coqc -v 2>/dev/null | sed -n -e 's/The Coq Proof Assistant, version \([^ ]*\).*$/\1/p')
 case "$coq_ver" in
-  8.7.0|8.7.1|8.7.2|8.8.0|8.8.1|8.8.2|8.9.0|8.9.1)
+  8.7.0|8.7.1|8.7.2|8.8.0|8.8.1|8.8.2|8.9.0|8.9.1|8.10.1)
         echo "version $coq_ver -- good!";;
   ?*)
         echo "version $coq_ver -- UNSUPPORTED"
@@ -555,7 +555,7 @@ fi
 
 MENHIR_REQUIRED=20161201
 MENHIR_NEW_API=20180530
-MENHIR_MAX=20181113
+MENHIR_MAX=20190924
 menhir_flags=''
 echo "Testing Menhir... " | tr -d '\n'
 menhir_ver=`menhir --version 2>/dev/null | sed -n -e 's/^.*version \([0-9]*\).*$/\1/p'`
