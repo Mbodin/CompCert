@@ -1,0 +1,37 @@
+{
+  "name": "compcert",
+  "version": "3.5",
+  "description": "Esy packaging for a library, subset of CompCert, that exports an API to manipulate Csharpminor",
+  "license": "INRIA Non-Commercial License Agreement",
+  "buildEnv": {
+    "HOME": "#{self.target_dir}"
+  },
+  "esy": {
+    "build":[
+      ["./configure", "x86_64-macosx"],
+      ["make", "-j", "4"]
+    ],
+    "buildsInSource": true,
+    "exportedEnv": {
+      "COMPCERT_CONFIG": {
+        "val": "#{self.target_dir}/compcert.ini",
+        "scope": "global"
+      }
+    }
+  },
+  "scripts": {
+    "utop": "dune utop --root=_esy/default/build"
+  },
+  "dependencies": {
+    "@opam/coq": "8.10.1",
+    "@opam/menhir": "*",
+    "ocaml": "4.8.0",
+    "@opam/depgraph": "*",
+    "@opam/dune": ">=1.9"
+  },
+  "devDependencies": {
+    "@opam/utop": "*",
+    "@opam/odoc": "*",
+    "ocaml": "4.8.0"
+  }
+}

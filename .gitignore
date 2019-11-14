@@ -13,6 +13,7 @@
 *.cmt
 # Emacs saves
 *~
+*.swp
 # Executables and configuration
 /ccomp
 /ccomp.byte
