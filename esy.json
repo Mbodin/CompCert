@@ -14,7 +14,7 @@
       "DESTDIR": "#{@opam/coq.lib}/coq/user-contrib/"
     },
     "build":[
-      ["./configure", "x86_64-macosx"],
+      ["./configure", "x86_64-macosx", "--coqdevdir", "#{@opam/coq.lib}/coq/user-contrib/compcert"],
       ["make", "-j", "4"]
     ],
     "buildsInSource": true,
