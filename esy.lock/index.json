@@ -1,5 +1,5 @@
 {
-  "checksum": "1c95006c986c9bde97fefb129441085d",
+  "checksum": "bd63830294f39d4b7e7a21ec54487784",
   "root": "compcert@link-dev:./esy.json",
   "node": {
     "ocaml@4.8.0@d41d8cd9": {
@@ -16,9 +16,9 @@
       "dependencies": [],
       "devDependencies": []
     },
-    "coq-flocq@git:git__AT__gitlab.inria.fr:flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de@40e6b77e": {
+    "coq-flocq@git:git__AT__gitlab.inria.fr:flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de@c1ac7f5a": {
       "id":
-        "coq-flocq@git:git__AT__gitlab.inria.fr:flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de@40e6b77e",
+        "coq-flocq@git:git__AT__gitlab.inria.fr:flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de@c1ac7f5a",
       "name": "coq-flocq",
       "version":
         "git:git@gitlab.inria.fr:flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de",
@@ -31,7 +31,11 @@
       "overrides": [
         {
           "dependencies": { "@opam/coq": "8.10.1" },
-          "buildEnv": { "COQBIN": "#{@opam/coq.bin}" },
+          "buildEnv": {
+            "COQBIN": "#{@opam/coq.bin}",
+            "COQLIB": "#{@opam/coq.lib}/coq/",
+            "COQPATH": "#{@opam/coq.lib}/coq/user-contrib/"
+          },
           "build": [
             [ "./autogen.sh" ],
             [
@@ -54,7 +58,7 @@
       "overrides": [],
       "dependencies": [
         "ocaml@4.8.0@d41d8cd9",
-        "coq-flocq@git:git__AT__gitlab.inria.fr:flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de@40e6b77e",
+        "coq-flocq@git:git__AT__gitlab.inria.fr:flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de@c1ac7f5a",
         "@opam/menhir@opam:20181113@0c8257a8",
         "@opam/dune@opam:1.11.4@21d66ccd",
         "@opam/depgraph@opam:0.1.0@bc9dcbeb",

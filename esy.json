@@ -9,7 +9,9 @@
   "esy": {
     "buildEnv": {
       "COQBIN": "#{@opam/coq.bin}/",
-      "COQLIB": "#{@opam/coq.lib}/coq/"
+      "COQLIB": "#{@opam/coq.lib}/coq/",
+      "COQPATH": "#{@opam/coq.lib}/coq/user-contrib/",
+      "DESTDIR": "#{@opam/coq.lib}/coq/user-contrib/"
     },
     "build":[
       ["./configure", "x86_64-macosx"],
@@ -24,7 +26,8 @@
     }
   },
   "scripts": {
-    "utop": "dune utop --root=_esy/default/build"
+    "utop": "dune utop --root=_esy/default/build",
+    "install": "make install"
   },
   "dependencies": {
     "@opam/coq": "8.10.1",
@@ -48,7 +51,9 @@
             "@opam/coq": "8.10.1"
           },
         "buildEnv": {
-          "COQBIN": "#{@opam/coq.bin}"
+          "COQBIN": "#{@opam/coq.bin}",
+          "COQLIB": "#{@opam/coq.lib}/coq/",
+          "COQPATH": "#{@opam/coq.lib}/coq/user-contrib/"
         },
         "build": [
             ["./autogen.sh"],
