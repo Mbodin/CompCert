@@ -15,7 +15,8 @@
     },
     "build":[
       ["./configure", "x86_64-macosx", "--coqdevdir", "#{@opam/coq.lib}/coq/user-contrib/compcert"],
-      ["make", "-j", "4"]
+      ["make", "-j", "4"],
+      ["make", "install"]
     ],
     "buildsInSource": true,
     "exportedEnv": {
@@ -26,8 +27,7 @@
     }
   },
   "scripts": {
-    "utop": "dune utop --root=_esy/default/build",
-    "install": "make install"
+    "utop": "dune utop --root=_esy/default/build"
   },
   "dependencies": {
     "@opam/coq": "8.10.1",
