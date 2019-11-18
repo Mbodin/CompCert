@@ -10,11 +10,10 @@
     "buildEnv": {
       "COQBIN": "#{@opam/coq.bin}/",
       "COQLIB": "#{@opam/coq.lib}/coq/",
-      "COQPATH": "#{@opam/coq.lib}/coq/user-contrib/",
-      "DESTDIR": "#{@opam/coq.lib}/coq/user-contrib/"
+      "COQPATH": "#{@opam/coq.lib}/coq/user-contrib/"
     },
     "build":[
-      ["./configure", "x86_64-macosx", "--coqdevdir", "#{@opam/coq.lib}/coq/user-contrib/compcert"],
+      ["./configure", "x86_64-macosx", "--prefix", "#{@opam/coq.install}", "--coqdevdir", "#{@opam/coq.lib}/coq/user-contrib/compcert"],
       ["make", "-j", "4"],
       ["make", "install"]
     ],
