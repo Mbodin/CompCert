@@ -3,17 +3,15 @@
   "version": "3.5",
   "description": "Esy packaging for a library, subset of CompCert, that exports an API to manipulate Csharpminor",
   "license": "INRIA Non-Commercial License Agreement",
-  "buildEnv": {
-    "HOME": "#{self.target_dir}"
-  },
   "esy": {
     "buildEnv": {
+      "HOME": "#{self.target_dir}",
       "COQBIN": "#{@opam/coq.bin}/",
       "COQLIB": "#{@opam/coq.lib}/coq/",
-      "COQPATH": "#{@opam/coq.lib}/coq/user-contrib/"
+      "COQPATH": "#{coq-flocq.install}/coq"
     },
-    "build":[
-      ["./configure", "x86_64-macosx", "--prefix", "#{@opam/coq.install}", "--coqdevdir", "#{@opam/coq.lib}/coq/user-contrib/compcert"],
+    "build": [
+      ["./configure", "x86_64-#{os}", "--prefix", "#{@opam/coq.install}", "--coqdevdir", "#{self.install}/coq/compcert"],
       ["make", "-j", "4"],
       ["make", "install"]
     ],
@@ -52,11 +50,11 @@
         "buildEnv": {
           "COQBIN": "#{@opam/coq.bin}",
           "COQLIB": "#{@opam/coq.lib}/coq/",
-          "COQPATH": "#{@opam/coq.lib}/coq/user-contrib/"
+          "COQPATH": "#{self.install}/coq"
         },
         "build": [
             ["./autogen.sh"],
-            ["./configure", "--libdir=#{@opam/coq.lib}/coq/user-contrib/Flocq"],
+            ["./configure", "--libdir=#{self.install}/coq/Flocq"],
             ["./remake", "--jobs=2"],
             ["./remake", "install"]
           ]
