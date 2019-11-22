@@ -15,9 +15,6 @@
 #                                                                     #
 #######################################################################
 
-ARCHOPT="-march=" # or "-arch "
-ARCHDASH="-" # or "_"
-
 prefix='/usr/local'
 bindir='$(PREFIX)/bin'
 libdir='$(PREFIX)/lib/compcert'
@@ -327,27 +324,27 @@ if test "$arch" = "x86" -a "$bitsize" = "32"; then
         libmath="-lm"
         system="linux"
         ;;
-    macosx)
+    macosx|darwin)
         # kernel major versions count upwards from 4 for OSX 10.0 to 15 for OSX 10.11
         kernel_major=`uname -r | cut -d "." -f 1`
 
         abi="macosx"
         casm="${toolprefix}gcc"
-        casm_options="${ARCHOPT}i386 -c"
-        cc="${toolprefix}gcc ${ARCHOPT}i386"
+        casm_options="-arch i386 -c"
+        cc="${toolprefix}gcc -arch i386"
         clinker="${toolprefix}gcc"
         clinker_needs_no_pie=false
         cprepro="${toolprefix}gcc"
-        cprepro_options="-std=c99 ${ARCHOPT}i386 -U__GNUC__ -U__clang__ -U__BLOCKS__ '-D__attribute__(x)=' '-D__asm(x)=' '-D_Nullable=' '-D_Nonnull=' -E"
+        cprepro_options="-std=c99 -arch i386 -U__GNUC__ -U__clang__ -U__BLOCKS__ '-D__attribute__(x)=' '-D__asm(x)=' '-D_Nullable=' '-D_Nonnull=' -E"
         libmath=""
         system="macosx"
 
         if [[ $kernel_major -gt 11 ]]; then
           # OSX >= 10.8
-          clinker_options="${ARCHOPT}i386 -Wl,-no_pie"
+          clinker_options="-arch i386 -Wl,-no_pie"
         else
           # OSX <= 10.7
-          clinker_options="${ARCHOPT}i386"
+          clinker_options="-arch i386"
         fi
         ;;
     *)
@@ -387,18 +384,18 @@ if test "$arch" = "x86" -a "$bitsize" = "64"; then
         libmath="-lm"
         system="linux"
         ;;
-    macosx)
+    macosx|darwin)
         # kernel major versions count upwards from 4 for OSX 10.0 to 15 for OSX 10.11
         kernel_major=`uname -r | cut -d "." -f 1`
 
         abi="macosx"
         casm="${toolprefix}gcc"
-        casm_options="${ARCHOPT}x86${ARCHDASH}64 -c"
-        cc="${toolprefix}gcc ${ARCHOPT}x86${ARCHDASH}64"
+        casm_options="-arch x86_64 -c"
+        cc="${toolprefix}gcc -arch x86_64"
         clinker="${toolprefix}gcc"
         clinker_needs_no_pie=false
         cprepro="${toolprefix}gcc"
-        cprepro_options="-std=c99 ${ARCHOPT}x86${ARCHDASH}64 -U__GNUC__ -U__clang__ -U__BLOCKS__ '-D__attribute__(x)=' '-D__asm(x)=' '-D_Nullable=' '-D_Nonnull=' -E"
+        cprepro_options="-std=c99 -arch x86_64 -U__GNUC__ -U__clang__ -U__BLOCKS__ '-D__attribute__(x)=' '-D__asm(x)=' '-D_Nullable=' '-D_Nonnull=' -E"
         libmath=""
         system="macosx"
         ;;
