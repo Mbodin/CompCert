@@ -48,9 +48,10 @@
             "@opam/coq": "8.10.1"
           },
         "buildEnv": {
+          "HOME": "#{self.target_dir}",
           "COQBIN": "#{@opam/coq.bin}",
           "COQLIB": "#{@opam/coq.lib}/coq/",
-          "COQPATH": "#{self.install}/coq"
+          "COQPATH": "#{self.install}:#{@opam/coq.lib}/coq/user-contrib/"
         },
         "build": [
             ["./autogen.sh"],
