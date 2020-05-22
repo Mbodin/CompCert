@@ -27,6 +27,7 @@ clightgen=false
 install_coqdev=false
 responsefile="gnu"
 ignore_coq_version=false
+ignore_coq=false
 
 usage='Usage: ./configure [options] target
 For help on options and targets, do: ./configure -help
@@ -90,6 +91,7 @@ Options:
   -clightgen           Also compile and install the clightgen tool
   -install-coqdev      Also install the Coq development (implied by -clightgen)
   -ignore-coq-version  Accept to use experimental or unsupported versions of Coq
+  -ignore-coq          Accept that Coq is not there. This is for Gillian Usage
 '
 
 #
@@ -123,6 +125,8 @@ while : ; do
         install_coqdev=true;;
     -ignore-coq-version|--ignore-coq-version)
         ignore_coq_version=true;;
+    -ignore-coq|--ignore-coq)
+        ingore_coq=true;;
     -install-coqdev|--install-coqdev|-install-coq-dev|--install-coq-dev)
         install_coqdev=true;;
     -help|--help)
@@ -542,8 +546,12 @@ case "$coq_ver" in
         fi;;
   "")
         echo "NOT FOUND"
-        echo "Error: make sure Coq version 8.11.1 is installed."
-        missingtools=true;;
+        if $ignore_coq; then
+            echo "Error: make sure Coq version 8.11.1 is installed."
+            missingtools=true
+        else
+            echo "Ignoring it, will not be able to prove anything."
+        fi;;
 esac
 
 echo "Testing OCaml... " | tr -d '\n'

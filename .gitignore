@@ -93,3 +93,6 @@ _build
 *.dot
 duneBuildLib
 venv
+*.install
+moveScript.sh
+*.merlin

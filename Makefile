@@ -178,7 +178,7 @@ runtime:
 
 FORCE:
 
-.PHONY: proof extraction runtime FORCE
+.PHONY: proof extraction runtime FORCE compcert.ini
 
 documentation: $(FILES)
 	mkdir -p doc/html

@@ -5,5 +5,6 @@ rm -rf customlib
 find . -iname '*.ml' -or -iname '*.mli' | grep -v '_esy\|_build' | depgraph > depend.dot
 mkdir customlib
 cp compileUtils/dune_for_compcert customlib/dune
+cp compcert.ini customlib/compcert.ini
 python compileUtils/makeCopyScript.py
 sh moveScript.sh
