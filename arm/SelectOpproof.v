@@ -13,16 +13,9 @@
 (** Correctness of instruction selection for operators *)
 
 Require Import Coqlib.
-Require Import Maps.
-Require Import AST.
-Require Import Integers.
-Require Import Floats.
-Require Import Values.
-Require Import Memory.
-Require Import Globalenvs.
-Require Import Cminor.
-Require Import Op.
-Require Import CminorSel.
+Require Import AST Integers Floats.
+Require Import Values Memory Builtins Globalenvs.
+Require Import Cminor Op CminorSel.
 Require Import SelectOp.
 
 Local Open Scope cminorsel_scope.
@@ -746,7 +739,9 @@ Theorem eval_select:
      eval_expr ge sp e m le a v
   /\ Val.lessdef (Val.select (Some b) v1 v2 ty) v.
 Proof.
-  unfold select; intros; inv H. rewrite <- H3; TrivialExists. 
+  unfold select; intros.
+  destruct (match ty with Tint | Tfloat | Tsingle => true | _ => false end); inv H.
+  rewrite <- H3; TrivialExists. 
 Qed.
 
 Theorem eval_cast8signed: unary_constructor_sound cast8signed (Val.sign_ext 8).
@@ -759,7 +754,7 @@ Qed.
 Theorem eval_cast8unsigned: unary_constructor_sound cast8unsigned (Val.zero_ext 8).
 Proof.
   red; intros until x. unfold cast8unsigned.
-  rewrite Val.zero_ext_and. apply eval_andimm. compute; auto.
+  rewrite Val.zero_ext_and. apply eval_andimm. omega.
 Qed.
 
 Theorem eval_cast16signed: unary_constructor_sound cast16signed (Val.sign_ext 16).
@@ -772,7 +767,7 @@ Qed.
 Theorem eval_cast16unsigned: unary_constructor_sound cast16unsigned (Val.zero_ext 16).
 Proof.
   red; intros until x. unfold cast8unsigned.
-  rewrite Val.zero_ext_and. apply eval_andimm. compute; auto.
+  rewrite Val.zero_ext_and. apply eval_andimm. omega.
 Qed.
 
 Theorem eval_singleoffloat: unary_constructor_sound singleoffloat Val.singleoffloat.
@@ -905,6 +900,18 @@ Proof.
   inv H6. constructor; auto.
 - inv H. repeat constructor; auto.
 - constructor; auto.
+Qed.
+
+(** Platform-specific known builtins *)
+
+Theorem eval_platform_builtin:
+  forall bf al a vl v le,
+  platform_builtin bf al = Some a ->
+  eval_exprlist ge sp e m le al vl ->
+  platform_builtin_sem bf vl = Some v ->
+  exists v', eval_expr ge sp e m le a v' /\ Val.lessdef v v'.
+Proof.
+  intros. discriminate.
 Qed.
 
 End CMCONSTR.

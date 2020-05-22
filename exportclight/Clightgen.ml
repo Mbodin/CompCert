@@ -45,12 +45,7 @@ let compile_c_ast sourcename csyntax ofile =
     | Errors.Error msg ->
       fatal_error loc "%a" print_error msg in
   (* Dump Clight in C syntax if requested *)
-  if !option_dclight then begin
-    let ofile = Filename.chop_suffix sourcename ".c" ^ ".light.c" in
-    let oc = open_out ofile in
-    PrintClight.print_program (Format.formatter_of_out_channel oc) clight;
-    close_out oc
-  end;
+  PrintClight.print_if_2 clight;
   (* Print Clight in Coq syntax *)
   let oc = open_out ofile in
   ExportClight.print_program (Format.formatter_of_out_channel oc)
@@ -60,6 +55,12 @@ let compile_c_ast sourcename csyntax ofile =
 (* From C source to Clight *)
 
 let compile_c_file sourcename ifile ofile =
+  let set_dest dst opt ext =
+    dst := if !opt then Some (output_filename sourcename ".c" ext)
+      else None in
+  set_dest Cprint.destination option_dparse ".parsed.c";
+  set_dest PrintCsyntax.destination option_dcmedium ".compcert.c";
+  set_dest PrintClight.destination option_dclight ".light.c";
   compile_c_ast sourcename (parse_c_file sourcename ifile) ofile
 
 let output_filename sourcename suff =
@@ -74,7 +75,10 @@ let process_c_file sourcename =
   if !option_E then begin
     preprocess sourcename "-"
   end else begin
-    let preproname = Driveraux.tmp_file ".i" in
+    let preproname = if !option_dprepro then
+        Driveraux.output_filename sourcename ".c" ".i"
+      else
+        Driveraux.tmp_file ".i" in
     preprocess sourcename preproname;
     compile_c_file sourcename preproname ofile
   end
@@ -94,15 +98,19 @@ Recognized source files:
   .i or .p       C source file that should not be preprocessed
 Processing options:
   -normalize     Normalize the generated Clight code w.r.t. loads in expressions
+  -canonical-idents  Use canonical numbers to represent identifiers  (default)
+  -short-idents  Use canonical numbers to represent identifiers
   -E             Preprocess only, send result to standard output
   -o <file>      Generate output in <file>
 |} ^
 prepro_help ^
 language_support_help ^
 {|Tracing options:
+  -dprepro       Save C file after preprocessing in <file>.i
   -dparse        Save C file after parsing and elaboration in <file>.parsed.c
   -dc            Save generated Compcert C in <file>.compcert.c
   -dclight       Save generated Clight in <file>.light.c
+  -dall          Save all generated intermediate files in <file>.<ext>
 |} ^
   general_help ^
   warning_help
@@ -136,15 +144,24 @@ let cmdline_actions =
 (* Processing options *)
  [ Exact "-E", Set option_E;
   Exact "-normalize", Set option_normalize;
+  Exact "-canonical-idents", Set Camlcoq.use_canonical_atoms;
+  Exact "-short-idents", Unset Camlcoq.use_canonical_atoms;
   Exact "-o", String(fun s -> option_o := Some s);
   Prefix "-o", Self (fun s -> let s = String.sub s 2 ((String.length s) - 2) in
                               option_o := Some s);]
 (* Preprocessing options *)
   @ prepro_actions @
 (* Tracing options *)
- [ Exact "-dparse", Set option_dparse;
-  Exact "-dc", Set option_dcmedium;
-  Exact "-dclight", Set option_dclight;]
+  [ Exact "-dprepro", Set option_dprepro;
+   Exact "-dparse", Set option_dparse;
+   Exact "-dc", Set option_dcmedium;
+   Exact "-dclight", Set option_dclight;
+   Exact "-dall", Self (fun _ ->
+       option_dprepro := true;
+       option_dparse := true;
+       option_dcmedium := true;
+       option_dclight := true;);
+ ]
   @ general_options
 (* Diagnostic options *)
   @ warning_options
@@ -162,12 +179,13 @@ let cmdline_actions =
   ]
 
 let _ =
-  try
+try
   Gc.set { (Gc.get()) with
               Gc.minor_heap_size = 524288; (* 512k *)
               Gc.major_heap_increment = 4194304 (* 4M *)
          };
   Printexc.record_backtrace true;
+  Camlcoq.use_canonical_atoms := true;
   Frontend.init ();
   parse_cmdline cmdline_actions;
   if !option_o <> None && !num_input_files >= 2 then
@@ -175,7 +193,7 @@ let _ =
   if !num_input_files = 0 then
     fatal_error no_loc "no input file";
   perform_actions ()
-      with
+with
   | Sys_error msg
   | CmdError msg -> error no_loc "%s" msg; exit 2
   | Abort -> exit 2

@@ -125,7 +125,8 @@ Enabled by default.
 .TP
 .B \-O0
 Turn off most optimizations.
-Synonymous to \fB\-fno\-const\-prop\fP \fB\-fno\-cse\fP \fB\-fno\-redundancy\fP \fB\-fno\-tailcalls\fP.
+Synonymous to \fB\-fno\-const\-prop\fP \fB\-fno\-cse\fP \fB\-fno\-if\-conversion\fP
+\fB\-fno\-inline\fP \fB\-fno\-redundancy\fP \fB\-fno\-tailcalls\fP.
 .
 .TP
 .BR \-O1 ", " \-O2 ", " \-O3
@@ -136,6 +137,13 @@ Synonymous for \fB\-O\fP.
 Optimize for code size in preference to code speed.
 .
 .TP
+.B \-Obranchless
+Optimize to generate fewer conditional branches and use branch-free
+instruction sequences instead.  When \fB-fif\-conversion\fP is
+enabled, the conversion is peformed aggressively even if the resulting
+code is less performant.
+.
+.TP
 .BR \-fconst\-prop ", " \-fno\-const\-prop
 Turn on/off global constant propagation.
 Enabled by default.
@@ -143,6 +151,11 @@ Enabled by default.
 .TP
 .BR \-fcse ", " \-fno\-cse
 Turn on/off common subexpression elimination.
+Enabled by default.
+.
+.TP
+.BR \-fif\-conversion ", " \-fno\-if\-conversion
+Turn on/off generation of conditional moves.
 Enabled by default.
 .
 .TP
@@ -430,8 +443,13 @@ Wrong return type for main.
 Enabled by default.
 .sp
 \fImissing\-declarations\fP:
-Declations which do not declare anything.
+Declarations which do not declare anything.
 Enabled by default.
+.sp
+\fInon\-linear\-cond\-expr\fP:
+Conditional expression that may not be optimized to branchless code.
+Only issued in \fB-Obranchless\fP mode.
+Disabled by default.
 .sp
 \fIpointer\-type\-mismatch\fP:
 Use of incompatible pointer types in conditional expressions.
@@ -467,7 +485,7 @@ Disabled by default.
 .sp
 \fIunused\-variable\fP:
 Unused local variables.
-Enabled by default.
+Disabled by default.
 .sp
 \fIvarargs\fP:
 Promotable vararg arguments.

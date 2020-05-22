@@ -14,6 +14,11 @@
 #######################################################################
 
 -include Makefile.config
+include VERSION
+
+BUILDVERSION ?= $(version)
+BUILDNR ?= $(buildnr)
+TAG ?= $(tag)
 
 ifeq ($(wildcard $(ARCH)_$(BITSIZE)),)
 ARCHDIRS=$(ARCH)
@@ -22,12 +27,14 @@ ARCHDIRS=$(ARCH)_$(BITSIZE) $(ARCH)
 endif
 
 DIRS=lib common $(ARCHDIRS) backend cfrontend driver \
-  exportclight cparser cparser/MenhirLib
+  exportclight MenhirLib cparser
 
-RECDIRS=lib common $(ARCHDIRS) backend cfrontend driver exportclight cparser
+RECDIRS=lib common $(ARCHDIRS) backend cfrontend driver exportclight \
+  MenhirLib cparser
 
 COQINCLUDES=$(foreach d, $(RECDIRS), -R $(d) compcert.$(d))
 
+COQCOPTS ?= -w -undeclared-scope
 COQC="$(COQBIN)coqc" -q $(COQINCLUDES) $(COQCOPTS)
 COQDEP="$(COQBIN)coqdep" $(COQINCLUDES)
 COQDOC="$(COQBIN)coqdoc"
@@ -60,12 +67,12 @@ VLIB=Axioms.v Coqlib.v Intv.v Maps.v Heaps.v Lattice.v Ordered.v \
 COMMON=Errors.v AST.v Linking.v \
   Events.v Globalenvs.v Memdata.v Memtype.v Memory.v \
   Values.v Smallstep.v Behaviors.v Switch.v Determinism.v Unityping.v \
-  Separation.v
+  Separation.v Builtins0.v Builtins1.v Builtins.v
 
 # Back-end modules (in backend/, $(ARCH)/)
 
 BACKEND=\
-  Cminor.v Op.v CminorSel.v \
+  Cminor.v Cminortyping.v Op.v CminorSel.v \
   SelectOp.v SelectDiv.v SplitLong.v SelectLong.v Selection.v \
   SelectOpproof.v SelectDivproof.v SplitLongproof.v \
   SelectLongproof.v Selectionproof.v \
@@ -101,15 +108,15 @@ CFRONTEND=Ctypes.v Cop.v Csyntax.v Csem.v Ctyping.v Cstrategy.v Cexec.v \
   Cshmgen.v Cshmgenproof.v \
   Csharpminor.v Cminorgen.v Cminorgenproof.v
 
-# LR(1) parser validator
-
-PARSERVALIDATOR=Alphabet.v Interpreter_complete.v Interpreter.v \
-  Validator_complete.v Automaton.v Interpreter_correct.v Main.v \
-  Validator_safe.v Grammar.v Interpreter_safe.v Tuples.v
-
 # Parser
 
 PARSER=Cabs.v Parser.v
+
+# MenhirLib
+
+MENHIRLIB=Alphabet.v Automaton.v Grammar.v Interpreter_complete.v \
+  Interpreter_correct.v Interpreter.v Main.v Validator_complete.v \
+  Validator_safe.v Validator_classes.v
 
 # Putting everything together (in driver/)
 
@@ -117,8 +124,8 @@ DRIVER=Compopts.v Compiler.v Complements.v
 
 # All source files
 
-FILES=$(VLIB) $(COMMON) $(BACKEND) $(CFRONTEND) $(DRIVER) \
-  $(PARSERVALIDATOR) $(PARSER)
+FILES=$(VLIB) $(COMMON) $(BACKEND) $(CFRONTEND) $(DRIVER) $(FLOCQ) \
+  $(MENHIRLIB) $(PARSER)
 
 # Generated source files
 
@@ -138,7 +145,9 @@ endif
 ifeq ($(CLIGHTGEN),true)
 	$(MAKE) clightgen
 endif
-
+ifeq ($(INSTALL_COQDEV),true)
+	$(MAKE) compcert.config
+endif
 
 proof: $(FILES:.v=.vo)
 
@@ -148,7 +157,7 @@ extraction: extraction/STAMP
 
 extraction/STAMP: $(FILES:.v=.vo) extraction/extraction.v $(ARCH)/extractionMachdep.v
 	rm -f extraction/*.ml extraction/*.mli
-	$(COQEXEC) extraction/extraction.v
+	$(EXPORT) $(COQEXEC) extraction/extraction.v
 	touch extraction/STAMP
 
 .depend.extr: extraction/STAMP tools/modorder driver/Version.ml
@@ -188,7 +197,7 @@ latexdoc:
 %.vo: %.v
 	@rm -f doc/$(*F).glob
 	@echo "COQC $*.v"
-	@$(EXPORT)$(COQC) -dump-glob doc/$(*F).glob $*.v
+	@$(EXPORT) $(COQC) -dump-glob doc/$(*F).glob $*.v
 
 %.v: %.vp tools/ndfun
 	@rm -f $*.v
@@ -215,21 +224,34 @@ compcert.ini: Makefile.config
 	 echo "response_file_style=$(RESPONSEFILE)";) \
         > compcert.ini
 
+compcert.config: Makefile.config
+	(echo "# CompCert configuration parameters"; \
+        echo "COMPCERT_ARCH=$(ARCH)"; \
+        echo "COMPCERT_MODEL=$(MODEL)"; \
+        echo "COMPCERT_ABI=$(ABI)"; \
+        echo "COMPCERT_ENDIANNESS=$(ENDIANNESS)"; \
+        echo "COMPCERT_BITSIZE=$(BITSIZE)"; \
+        echo "COMPCERT_SYSTEM=$(SYSTEM)"; \
+        echo "COMPCERT_VERSION=$(BUILDVERSION)"; \
+        echo "COMPCERT_BUILDNR=$(BUILDNR)"; \
+        echo "COMPCERT_TAG=$(TAG)" \
+        ) > compcert.config
+
 driver/Version.ml: VERSION
-	cat VERSION \
-	| sed -e 's|\(.*\)=\(.*\)|let \1 = \"\2\"|g' \
-	>driver/Version.ml
+	(echo 'let version = "$(BUILDVERSION)"'; \
+         echo 'let buildnr = "$(BUILDNR)"'; \
+         echo 'let tag = "$(TAG)"';) > driver/Version.ml
 
 cparser/Parser.v: cparser/Parser.vy
 	@rm -f $@
-	$(MENHIR) $(MENHIR_FLAGS) --coq cparser/Parser.vy
+	$(MENHIR) --coq --coq-lib-path compcert.MenhirLib --coq-no-version-check cparser/Parser.vy
 	@chmod a-w $@
 
 depend: $(GENERATED) depend1
 
 depend1: $(FILES) exportclight/Clightdefs.v
 	@echo "Analyzing Coq dependencies"
-	@$(EXPORT)$(COQDEP) $^ > .depend
+	@$(EXPORT) $(COQDEP) $^ > .depend
 
 install:
 	install -d $(DESTDIR)$(BINDIR)
@@ -249,16 +271,17 @@ ifeq ($(INSTALL_COQDEV),true)
           install -m 0644 $$d/*.vo $(DESTDIR)$(COQDEVDIR)/$$d/; \
 	done
 	install -m 0644 ./VERSION $(DESTDIR)$(COQDEVDIR)
+	install -m 0644 ./compcert.config $(DESTDIR)$(COQDEVDIR)
 	@(echo "To use, pass the following to coq_makefile or add the following to _CoqProject:"; echo "-R $(COQDEVDIR) compcert") > $(DESTDIR)$(COQDEVDIR)/README
 endif
 
 
 clean:
-	rm -f $(patsubst %, %/*.vo, $(DIRS))
+	rm -f $(patsubst %, %/*.vo*, $(DIRS))
 	rm -f $(patsubst %, %/.*.aux, $(DIRS))
 	rm -rf doc/html doc/*.glob
 	rm -f driver/Version.ml
-	rm -f compcert.ini
+	rm -f compcert.ini compcert.config
 	rm -f extraction/STAMP extraction/*.ml extraction/*.mli .depend.extr
 	rm -f tools/ndfun tools/modorder tools/*.cm? tools/*.o
 	rm -f $(GENERATED) .depend

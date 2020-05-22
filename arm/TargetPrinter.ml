@@ -113,9 +113,9 @@ struct
   let freg_single oc r = output_string oc (single_float_reg_name r)
   let freg_param_single oc r = output_string oc (single_param_reg_name r)
 
-  let preg oc = function
+  let preg_asm oc ty = function
     | IR r -> ireg oc r
-    | FR r -> freg oc r
+    | FR r -> if ty = Tsingle then freg_single oc r else freg oc r
     | _    -> assert false
 
   (* In Thumb2 mode, some arithmetic instructions have shorter encodings
@@ -445,9 +445,9 @@ struct
         (neg_condition_name cond) ireg r1 shift_op ifnot
     | Pfmovite(cond, r1, ifso, ifnot) ->
       fprintf oc "	ite	%s\n" (condition_name cond);
-      fprintf oc "	vmov%s	%a, %a\n"
+      fprintf oc "	vmov%s.f64	%a, %a\n"
         (condition_name cond) freg r1 freg ifso;
-      fprintf oc "	vmov%s	%a, %a\n"
+      fprintf oc "	vmov%s.f64	%a, %a\n"
         (neg_condition_name cond) freg r1 freg ifnot
     | Pbtbl(r, tbl) ->
       if !Clflags.option_mthumb then begin
@@ -480,7 +480,7 @@ struct
             (P.to_int kind) (extern_atom txt) args
         | EF_inline_asm(txt, sg, clob) ->
           fprintf oc "%s begin inline assembly\n\t" comment;
-          print_inline_asm preg oc (camlstring_of_coqstring txt) sg args res;
+          print_inline_asm preg_asm oc (camlstring_of_coqstring txt) sg args res;
           fprintf oc "%s end inline assembly\n" comment
         | _ ->
           assert false

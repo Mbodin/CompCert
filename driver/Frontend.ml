@@ -75,6 +75,7 @@ let preprocess ifile ofile =
 let parse_c_file sourcename ifile =
   Debug.init_compile_unit sourcename;
   Sections.initialize();
+  CPragmas.reset();
   (* Simplification options *)
   let simplifs =
     "b" (* blocks: mandatory *)
@@ -116,9 +117,10 @@ let init () =
     | "riscV"   -> if Configuration.model = "64"
                    then Machine.rv64
                    else Machine.rv32
+    | "aarch64" -> Machine.aarch64
     | _         -> assert false
   end;
-  Builtins.set C2C.builtins;
+  Env.set_builtins C2C.builtins;
   Cutil.declare_attributes C2C.attributes;
   CPragmas.initialize()
 
@@ -131,7 +133,7 @@ let gnu_prepro_opt_key key s =
 let gnu_prepro_opt s =
   prepro_options := s::!prepro_options
 
-(* Add gnu preprocessor option s and the implict -E *)
+(* Add gnu preprocessor option s and the implicit -E *)
 let gnu_prepro_opt_e s =
   prepro_options := s :: !prepro_options;
   option_E := true
@@ -171,7 +173,7 @@ let prepro_actions = [
   @ (if Configuration.gnu_toolchain then gnu_prepro_actions else [])
 
 let gnu_prepro_help =
-{|  -M            Ouput a rule suitable for make describing the
+{|  -M            Output a rule suitable for make describing the
                  dependencies of the main source file
   -MM            Like -M but do not mention system header files
   -MF <file>     Specifies file <file> as output file for -M or -MM

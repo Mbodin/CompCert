@@ -149,6 +149,23 @@ Proof.
   auto.
 Defined.
 
+Definition has_rettype (v: val) (r: rettype) : Prop :=
+  match r, v with
+  | Tret t, _ => has_type v t
+  | Tint8signed, Vint n => n = Int.sign_ext 8 n
+  | Tint8unsigned, Vint n => n = Int.zero_ext 8 n
+  | Tint16signed, Vint n => n = Int.sign_ext 16 n
+  | Tint16unsigned, Vint n => n = Int.zero_ext 16 n
+  | _, Vundef => True
+  | _, _ => False
+  end.
+
+Lemma has_proj_rettype: forall v r,
+  has_rettype v r -> has_type v (proj_rettype r).
+Proof.
+  destruct r; simpl; intros; auto; destruct v; try contradiction; exact I.
+Qed.
+
 (** Truth values.  Non-zero integers are treated as [True].
   The integer 0 (also used to represent the null pointer) is [False].
   Other values are neither true nor false. *)
@@ -783,6 +800,18 @@ Definition rolml (v: val) (amount: int) (mask: int64): val :=
   | _ => Vundef
   end.
 
+Definition zero_ext_l (nbits: Z) (v: val) : val :=
+  match v with
+  | Vlong n => Vlong(Int64.zero_ext nbits n)
+  | _ => Vundef
+  end.
+
+Definition sign_ext_l (nbits: Z) (v: val) : val :=
+  match v with
+  | Vlong n => Vlong(Int64.sign_ext nbits n)
+  | _ => Vundef
+  end.
+
 (** Comparisons *)
 
 Section COMPARISONS.
@@ -991,10 +1020,24 @@ Definition load_result (chunk: memory_chunk) (v: val) :=
   | _, _ => Vundef
   end.
 
+Lemma load_result_rettype:
+  forall chunk v, has_rettype (load_result chunk v) (rettype_of_chunk chunk).
+Proof.
+  intros. unfold has_rettype; destruct chunk; destruct v; simpl; auto.
+- rewrite Int.sign_ext_idem by omega; auto.
+- rewrite Int.zero_ext_idem by omega; auto.
+- rewrite Int.sign_ext_idem by omega; auto.
+- rewrite Int.zero_ext_idem by omega; auto.
+- destruct Archi.ptr64 eqn:SF; simpl; auto.
+- destruct Archi.ptr64 eqn:SF; simpl; auto.
+- destruct Archi.ptr64 eqn:SF; simpl; auto.
+Qed.
+
 Lemma load_result_type:
   forall chunk v, has_type (load_result chunk v) (type_of_chunk chunk).
 Proof.
-  intros. unfold has_type; destruct chunk; destruct v; simpl; auto; destruct Archi.ptr64 eqn:SF; simpl; auto.
+  intros. rewrite <- proj_rettype_of_chunk. apply has_proj_rettype.
+  apply load_result_rettype.
 Qed.
 
 Lemma load_result_same:
@@ -1898,10 +1941,18 @@ Qed.
 
 Lemma zero_ext_and:
   forall n v,
-  0 < n < Int.zwordsize ->
+  0 <= n ->
   Val.zero_ext n v = Val.and v (Vint (Int.repr (two_p n - 1))).
 Proof.
-  intros. destruct v; simpl; auto. decEq. apply Int.zero_ext_and; auto. omega.
+  intros. destruct v; simpl; auto. decEq. apply Int.zero_ext_and; auto.
+Qed.
+
+Lemma zero_ext_andl:
+  forall n v,
+  0 <= n ->
+  Val.zero_ext_l n v = Val.andl v (Vlong (Int64.repr (two_p n - 1))).
+Proof.
+  intros. destruct v; simpl; auto. decEq. apply Int64.zero_ext_and; auto.
 Qed.
 
 Lemma rolm_lt_zero:
@@ -1949,7 +2000,7 @@ Inductive lessdef_list: list val -> list val -> Prop :=
       lessdef v1 v2 -> lessdef_list vl1 vl2 ->
       lessdef_list (v1 :: vl1) (v2 :: vl2).
 
-Hint Resolve lessdef_refl lessdef_undef lessdef_list_nil lessdef_list_cons.
+Hint Resolve lessdef_refl lessdef_undef lessdef_list_nil lessdef_list_cons : core.
 
 Lemma lessdef_list_inv:
   forall vl1 vl2, lessdef_list vl1 vl2 -> vl1 = vl2 \/ In Vundef vl1.
@@ -2174,7 +2225,7 @@ Inductive inject (mi: meminj): val -> val -> Prop :=
   | val_inject_undef: forall v,
       inject mi Vundef v.
 
-Hint Constructors inject.
+Hint Constructors inject : core.
 
 Inductive inject_list (mi: meminj): list val -> list val-> Prop:=
   | inject_list_nil :
@@ -2183,7 +2234,7 @@ Inductive inject_list (mi: meminj): list val -> list val-> Prop:=
       inject mi v v' -> inject_list mi vl vl'->
       inject_list mi (v :: vl) (v' :: vl').
 
-Hint Resolve inject_list_nil inject_list_cons.
+Hint Resolve inject_list_nil inject_list_cons : core.
 
 Lemma inject_ptrofs:
   forall mi i, inject mi (Vptrofs i) (Vptrofs i).
@@ -2191,7 +2242,7 @@ Proof.
   unfold Vptrofs; intros. destruct Archi.ptr64; auto.
 Qed.
 
-Hint Resolve inject_ptrofs.
+Hint Resolve inject_ptrofs : core.
 
 Section VAL_INJ_OPS.
 
@@ -2494,7 +2545,7 @@ Proof.
   constructor. eapply val_inject_incr; eauto. auto.
 Qed.
 
-Hint Resolve inject_incr_refl val_inject_incr val_inject_list_incr.
+Hint Resolve inject_incr_refl val_inject_incr val_inject_list_incr : core.
 
 Lemma val_inject_lessdef:
   forall v1 v2, Val.lessdef v1 v2 <-> Val.inject (fun b => Some(b, 0)) v1 v2.

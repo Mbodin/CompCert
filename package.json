@@ -27,7 +27,7 @@
 	},
 	"dependencies": {
 		"@opam/coq": "~8.11",
-		"@opam/menhir": "20181113",
+		"@opam/menhir": ">=20190626",
 		"ocaml": "4.8.0",
 		"@opam/depgraph": "*",
 		"@opam/dune": ">=1.9",

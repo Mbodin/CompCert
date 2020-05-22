@@ -33,6 +33,7 @@ type inline_status =
 
 type atom_info =
   { a_storage: C.storage;              (* storage class *)
+    a_size: int64 option;              (* size in bytes *)
     a_alignment: int option;           (* alignment *)
     a_sections: Sections.section_name list; (* in which section to put it *)
       (* 1 section for data, 3 sections (code/lit/jumptbl) for functions *)
@@ -61,15 +62,25 @@ let atom_alignof a =
   with Not_found ->
     None
 
+let atom_is_aligned a sz =
+  match atom_alignof a with
+  | None -> false
+  | Some align -> align mod (Z.to_int sz) = 0
+
 let atom_sections a =
   try
     (Hashtbl.find decl_atom a).a_sections
   with Not_found ->
     []
 
-let atom_is_small_data a ofs =
+let atom_is_small_data a ofs  =
   try
-    (Hashtbl.find decl_atom a).a_access = Sections.Access_near
+    let info = Hashtbl.find decl_atom a in
+    info.a_access = Sections.Access_near
+    && (match info.a_size with
+        | None -> false
+        | Some sz ->
+            let ofs = camlint64_of_ptrofs ofs in 0L <= ofs && ofs < sz)
   with Not_found ->
     false
 
@@ -109,7 +120,7 @@ let atom_location a =
 
 let comp_env : composite_env ref = ref Maps.PTree.empty
 
-(** Hooks -- overriden in machine-dependent CPragmas module *)
+(** Hooks -- overridden in machine-dependent CPragmas module *)
 
 let process_pragma_hook = ref (fun (_: string) -> false)
 
@@ -155,13 +166,15 @@ let ais_annot_functions =
     []
 
 let builtins_generic = {
-  Builtins.typedefs = [];
-  Builtins.functions =
+  builtin_typedefs = [];
+  builtin_functions =
     ais_annot_functions
       @
     [
     (* Integer arithmetic *)
-    "__builtin_bswap",
+    "__builtin_bswap64",
+    (TInt(IULongLong, []), [TInt(IULongLong, [])], false);
+      "__builtin_bswap",
     (TInt(IUInt, []), [TInt(IUInt, [])], false);
     "__builtin_bswap32",
       (TInt(IUInt, []), [TInt(IUInt, [])], false);
@@ -181,6 +194,11 @@ let builtins_generic = {
             TInt(IULong, []);
             TInt(IULong, [])],
           false);
+    (* Selection *)
+    "__builtin_sel",
+        (TVoid [],
+           [TInt(C.IBool, [])],
+           true);
     (* Annotations *)
     "__builtin_annot",
         (TVoid [],
@@ -300,9 +318,12 @@ let builtins_generic = {
 
 (* Add processor-dependent builtins *)
 
-let builtins =
-  Builtins.({ typedefs = builtins_generic.typedefs @ CBuiltins.builtins.typedefs;
-    functions = builtins_generic.Builtins.functions @ CBuiltins.builtins.functions })
+let builtins = {
+  builtin_typedefs =
+    builtins_generic.builtin_typedefs @ CBuiltins.builtins.builtin_typedefs;
+  builtin_functions =
+    builtins_generic.builtin_functions @ CBuiltins.builtins.builtin_functions
+}
 
 (** ** The known attributes *)
 
@@ -337,6 +358,7 @@ let name_for_string_literal s =
     Hashtbl.add decl_atom id
       { a_storage = C.Storage_static;
         a_alignment = Some 1;
+        a_size = Some (Int64.of_int (String.length s + 1));
         a_sections = [Sections.for_stringlit()];
         a_access = Sections.Access_default;
         a_inline = No_specifier;
@@ -364,9 +386,12 @@ let name_for_wide_string_literal s =
     incr stringNum;
     let name = Printf.sprintf "__stringlit_%d" !stringNum in
     let id = intern_string name in
+    let wchar_size = Machine.((!config).sizeof_wchar) in
     Hashtbl.add decl_atom id
       { a_storage = C.Storage_static;
-        a_alignment = Some Machine.((!config).sizeof_wchar);
+        a_alignment = Some wchar_size;
+        a_size = Some (Int64.(mul (of_int (List.length s + 1))
+                                  (of_int wchar_size)));
         a_sections = [Sections.for_stringlit()];
         a_access = Sections.Access_default;
         a_inline = No_specifier;
@@ -596,6 +621,12 @@ and convertParams env = function
     | [] -> Tnil
     | (id, ty) :: rem -> Tcons(convertTyp env ty, convertParams env rem)
 
+(* Convert types for the arguments to a function call.  The types for
+   fixed arguments are taken from the function prototype.  The types
+   for other arguments (variable-argument function or unprototyped K&R
+   functions) are taken from the types of the function arguments,
+   after default argument conversion. *)
+
 let rec convertTypArgs env tl el =
   match tl, el with
   | _, [] -> Tnil
@@ -604,6 +635,20 @@ let rec convertTypArgs env tl el =
             convertTypArgs env [] el)
   | (id, t1) :: tl, e1 :: el ->
       Tcons(convertTyp env t1, convertTypArgs env tl el)
+
+(* Convert types for the arguments to inline asm statements and to
+   the special built-in functions __builtin_annot, __builtin_ais_annot_
+   and __builtin_debug.  The types are taken from the types of the
+   arguments, after performing the usual unary conversions.
+   Hence char becomes int but float remains float and is not promoted
+   to double.  The goal is to preserve the representation of the arguments
+   and avoid inserting compiled code to convert the arguments. *)
+
+let rec convertTypAnnotArgs env = function
+  | [] -> Tnil
+  | e1 :: el ->
+      Tcons(convertTyp env (Cutil.unary_conversion env e1.etyp),
+            convertTypAnnotArgs env el)
 
 let convertField env f =
   if f.fld_bitfield <> None then
@@ -845,7 +890,7 @@ let rec convertExpr env e =
         | {edesc = C.EVar id} :: args2 -> (id.name, args2)
         | _::args2 -> error "argument 2 of '__builtin_debug' must be either a string literal or a variable"; ("", args2)
         | [] -> assert false (* catched earlier *) in
-      let targs2 = convertTypArgs env [] args2 in
+      let targs2 = convertTypAnnotArgs env args2 in
       Ebuiltin(
          AST.EF_debug(P.of_int64 kind, intern_string text,
                  typlist_of_typelist targs2),
@@ -854,7 +899,7 @@ let rec convertExpr env e =
   | C.ECall({edesc = C.EVar {name = "__builtin_annot"}}, args) ->
       begin match args with
       | {edesc = C.EConst(CStr txt)} :: args1 ->
-          let targs1 = convertTypArgs env [] args1 in
+          let targs1 = convertTypAnnotArgs env args1 in
           Ebuiltin(
              AST.EF_annot(P.of_int 1,coqstring_of_camlstring txt, typlist_of_typelist targs1),
             targs1, convertExprList env args1, convertTyp env e.etyp)
@@ -882,7 +927,7 @@ let rec convertExpr env e =
         let file,line = !currentLocation in
         let fun_name = !currentFunction in
         let loc_string = Printf.sprintf "# file:%s line:%d function:%s\n" file line fun_name in
-        let targs1 = convertTypArgs env [] args1 in
+        let targs1 = convertTypAnnotArgs env args1 in
         AisAnnot.validate_ais_annot env !currentLocation txt args1;
           Ebuiltin(
              AST.EF_annot(P.of_int 2,coqstring_of_camlstring (loc_string ^ txt), typlist_of_typelist targs1),
@@ -917,6 +962,10 @@ let rec convertExpr env e =
                  Tcons(Tpointer(Tvoid, noattr), Tnil)),
                Econs(va_list_ptr dst, Econs(va_list_ptr src, Enil)),
                Tvoid)
+
+  | C.ECall({edesc = C.EVar {name = "__builtin_sel"}}, [arg1; arg2; arg3]) ->
+      ewrap (Ctyping.eselection (convertExpr env arg1)
+                                (convertExpr env arg2) (convertExpr env arg3))
 
   | C.ECall({edesc = C.EVar {name = "printf"}}, args)
     when !Clflags.option_interp ->
@@ -983,14 +1032,14 @@ let convertAsm loc env txt outputs inputs clobber =
     match output' with None -> TVoid [] | Some e -> e.etyp in
   (* Build the Ebuiltin expression *)
   let e =
-    let tinputs = convertTypArgs env [] inputs' in
+    let tinputs = convertTypAnnotArgs env inputs' in
     let toutput = convertTyp env ty_res in
     Ebuiltin( AST.EF_inline_asm(coqstring_of_camlstring txt',
                            signature_of_type tinputs toutput  AST.cc_default,
                            clobber'),
              tinputs,
              convertExprList env inputs',
-             convertTyp env ty_res) in
+             toutput) in
   (* Add an assignment to the output, if any *)
   match output' with
   | None -> e
@@ -1184,7 +1233,8 @@ let convertFundef loc env fd =
   Hashtbl.add decl_atom id'
     { a_storage = fd.fd_storage;
       a_alignment = None;
-      a_sections = Sections.for_function env id' fd.fd_attrib;
+      a_size = None;
+      a_sections = Sections.for_function env loc id' fd.fd_attrib;
       a_access = Sections.Access_default;
       a_inline = inline;
       a_loc = loc };
@@ -1213,7 +1263,7 @@ let convertFundecl env (sto, id, ty, optinit) =
     if id.name = "free" then AST.EF_free else
     if Str.string_match re_runtime id.name 0 then  AST.EF_runtime(id'', sg) else
     if Str.string_match re_builtin id.name 0
-    && List.mem_assoc id.name builtins.Builtins.functions
+    && List.mem_assoc id.name builtins.builtin_functions
     then AST.EF_builtin(id'', sg)
     else AST.EF_external(id'', sg) in
   (id',  AST.Gfun(Ctypes.External(ef, args, res, cconv)))
@@ -1261,7 +1311,7 @@ let convertGlobvar loc env (sto, id, ty, optinit) =
     | Some i ->
         convertInitializer env ty i in
   let (section, access) =
-    Sections.for_variable env id' ty (optinit <> None) in
+    Sections.for_variable env loc id' ty (optinit <> None) in
   if Z.gt sz (Z.of_uint64 0xFFFF_FFFFL) then
     error "'%s' is too big (%s bytes)"
                    id.name (Z.to_string sz);
@@ -1270,6 +1320,7 @@ let convertGlobvar loc env (sto, id, ty, optinit) =
   Hashtbl.add decl_atom id'
     { a_storage = sto;
       a_alignment = Some (Z.to_int al);
+      a_size = Some (Z.to_int64 sz);
       a_sections = [section];
       a_access = access;
       a_inline = No_specifier;
@@ -1412,7 +1463,7 @@ let convertProgram p =
   Hashtbl.clear decl_atom;
   Hashtbl.clear stringTable;
   Hashtbl.clear wstringTable;
-  let p = cleanupGlobals (Builtins.declarations() @ p) in
+  let p = cleanupGlobals (Env.initial_declarations() @ p) in
   try
     let env = translEnv Env.empty p in
     let typs = convertCompositedefs env [] p in

@@ -18,7 +18,7 @@
 open Format
 open Camlcoq
 open AST
-open Ctypes
+open! Ctypes
 open Cop
 open Clight
 
@@ -81,8 +81,12 @@ let define_idents p =
     string_of_atom
     (fun (id, name) ->
       try
-        fprintf p "Definition _%s : ident := %ld%%positive.@ "
-                  (sanitize name) (P.to_int32 id)
+        if id = pos_of_string name then
+          fprintf p "Definition _%s : ident := $\"%s\".@ "
+                    (sanitize name) name
+        else
+          fprintf p "Definition _%s : ident := %ld%%positive.@ "
+                    (sanitize name) (P.to_int32 id)
       with Not_an_identifier ->
         ());
   iter_hashtbl_sorted
@@ -93,9 +97,11 @@ let define_idents p =
   fprintf p "@ "
 
 let name_temporary t =
-  let t1 = P.to_int t and t0 = P.to_int (first_unused_ident ()) in
-  if t1 >= t0 && not (Hashtbl.mem temp_names t)
-  then Hashtbl.add temp_names t (sprintf "_t'%d" (t1 - t0 + 1))
+  if not (Hashtbl.mem string_of_atom t) && not (Hashtbl.mem temp_names t)
+  then begin
+    let t1 = P.to_int t and t0 = P.to_int (first_unused_ident ()) in
+    Hashtbl.add temp_names t (sprintf "_t'%d" (t1 - t0 + 1))
+  end
 
 let name_opt_temporary = function
   | None -> ()
@@ -221,6 +227,14 @@ let asttype p t =
       | AST.Tany32 -> "AST.Tany32"
       | AST.Tany64 -> "AST.Tany64")
 
+let astrettype p = function
+  | AST.Tret t -> asttype p t
+  | AST.Tvoid -> fprintf p "AST.Tvoid"
+  | AST.Tint8signed -> fprintf p "AST.Tint8signed"
+  | AST.Tint8unsigned -> fprintf p "AST.Tint8unsigned"
+  | AST.Tint16signed -> fprintf p "AST.Tint16signed"
+  | AST.Tint16unsigned -> fprintf p "AST.Tint16unsigned"
+
 let name_of_chunk = function
   | Mint8signed -> "Mint8signed"
   | Mint8unsigned -> "Mint8unsigned"
@@ -236,7 +250,7 @@ let name_of_chunk = function
 let signatur p sg =
   fprintf p "@[<hov 2>(mksignature@ %a@ %a@ %a)@]"
      (print_list asttype) sg.sig_args
-     (print_option asttype) sg.sig_res
+     astrettype sg.sig_res
      callconv sg.sig_cc
 
 let assertions = ref ([]: (string * typ list) list)
@@ -381,7 +395,7 @@ and lblstmts p = function
               (print_option coqZ) lbl stmt s lblstmts ls
 
 let print_function p (id, f) =
-  fprintf p "Definition f_%s := {|@ " (extern_atom id);
+  fprintf p "Definition f_%s := {|@ " (sanitize (extern_atom id));
   fprintf p "  fn_return := %a;@ " typ f.fn_return;
   fprintf p "  fn_callconv := %a;@ " callconv f.fn_callconv;
   fprintf p "  fn_params := %a;@ " (print_list (print_pair ident typ)) f.fn_params;
@@ -402,7 +416,7 @@ let init_data p = function
   | Init_addrof(id,ofs) -> fprintf p "Init_addrof %a %a" ident id coqptrofs ofs
 
 let print_variable p (id, v) =
-  fprintf p "Definition v_%s := {|@ " (extern_atom id);
+  fprintf p "Definition v_%s := {|@ " (sanitize (extern_atom id));
   fprintf p "  gvar_info := %a;@ " typ v.gvar_info;
   fprintf p "  gvar_init := %a;@ " (print_list init_data) v.gvar_init;
   fprintf p "  gvar_readonly := %B;@ " v.gvar_readonly;
@@ -417,12 +431,12 @@ let print_globdef p (id, gd) =
 
 let print_ident_globdef p = function
   | (id, Gfun(Ctypes.Internal f)) ->
-      fprintf p "(%a, Gfun(Internal f_%s))" ident id (extern_atom id)
+      fprintf p "(%a, Gfun(Internal f_%s))" ident id (sanitize (extern_atom id))
   | (id, Gfun(Ctypes.External(ef, targs, tres, cc))) ->
       fprintf p "@[<hov 2>(%a,@ @[<hov 2>Gfun(External %a@ %a@ %a@ %a))@]@]"
         ident id external_function ef typlist targs typ tres callconv cc
   | (id, Gvar v) ->
-      fprintf p "(%a, Gvar v_%s)" ident id (extern_atom id)
+      fprintf p "(%a, Gvar v_%s)" ident id (sanitize (extern_atom id))
 
 (* Composite definitions *)
 
@@ -460,7 +474,7 @@ let print_assertion p (txt, targs) =
      | Text _ -> ()
      | Param n -> max_param := max n !max_param)
     frags;
-  fprintf p "  | \"%s\"%%string, " txt;
+  fprintf p "  | \"%s\", " txt;
   list_iteri
     (fun i targ -> fprintf p "_x%d :: " (i + 1))
     targs;
@@ -487,7 +501,8 @@ let print_assertions p =
 let prologue = "\
 From Coq Require Import String List ZArith.\n\
 From compcert Require Import Coqlib Integers Floats AST Ctypes Cop Clight Clightdefs.\n\
-Local Open Scope Z_scope.\n"
+Local Open Scope Z_scope.\n\
+Local Open Scope string_scope.\n"
 
 (* Naming the compiler-generated temporaries occurring in the program *)
 
@@ -546,15 +561,15 @@ let name_program p =
 
 let print_clightgen_info p sourcefile normalized =
   fprintf p "@[<v 2>Module Info.";
-  fprintf p "@ Definition version := %S%%string." Version.version;
-  fprintf p "@ Definition build_number := %S%%string." Version.buildnr;
-  fprintf p "@ Definition build_tag := %S%%string." Version.tag;
-  fprintf p "@ Definition arch := %S%%string." Configuration.arch;
-  fprintf p "@ Definition model := %S%%string." Configuration.model;
-  fprintf p "@ Definition abi := %S%%string." Configuration.abi;
+  fprintf p "@ Definition version := %S." Version.version;
+  fprintf p "@ Definition build_number := %S." Version.buildnr;
+  fprintf p "@ Definition build_tag := %S." Version.tag;
+  fprintf p "@ Definition arch := %S." Configuration.arch;
+  fprintf p "@ Definition model := %S." Configuration.model;
+  fprintf p "@ Definition abi := %S." Configuration.abi;
   fprintf p "@ Definition bitsize := %d." (if Archi.ptr64 then 64 else 32);
   fprintf p "@ Definition big_endian := %B." Archi.big_endian;
-  fprintf p "@ Definition source_file := %S%%string." sourcefile;
+  fprintf p "@ Definition source_file := %S." sourcefile;
   fprintf p "@ Definition normalized := %B." normalized;
   fprintf p "@]@ End Info.@ @ "  
   

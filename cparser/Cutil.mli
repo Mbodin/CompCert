@@ -166,12 +166,16 @@ val is_scalar_type : Env.t -> typ -> bool
   (* Is type integer, float or pointer? *)
 val is_composite_type : Env.t -> typ -> bool
   (* Is type a struct or union? *)
+val is_array_type : Env.t -> typ -> bool
+  (* Is type an array type? *)
 val is_function_type : Env.t -> typ -> bool
   (* Is type a function type? (not pointer to function) *)
 val is_function_pointer_type : Env.t -> typ -> bool
   (* Is type a pointer to function type? *)
 val is_anonymous_composite : typ -> bool
   (* Is type an anonymous composite? *)
+val is_anonymous_type : typ -> bool
+  (* Is the type an anonymous composite or enum *)
 val is_qualified_array : typ -> bool
   (* Does the type contain a qualified array type (e.g. int[const 5])? *)
 val pointer_arithmetic_ok : Env.t -> typ -> bool

@@ -18,7 +18,14 @@
 module CharSet = Set.Make(struct type t = char let compare = compare end)
 
 let transform_program t p name =
-  let run_pass pass flag p = if CharSet.mem flag t then pass p else p in
+  let run_pass pass flag p =
+    if CharSet.mem flag t then begin
+      let p = pass p in
+      Diagnostics.check_errors ();
+      p
+    end else
+      p
+  in
   let p1 = (run_pass StructPassing.program 's'
   (run_pass PackedStructs.program 'p'
   (run_pass Unblock.program 'b'
@@ -56,22 +63,21 @@ let preprocessed_file transfs name sourcefile =
   let text = read_file sourcefile in
   let p =
       let t = parse_transformations transfs in
-      let rec inf = Datatypes.S inf in
+      let log_fuel = Camlcoq.Nat.of_int 50 in
       let ast : Cabs.definition list =
-        Obj.magic
           (match Timing.time "Parsing"
               (* The call to Lexer.tokens_stream results in the pre
                  parsing of the entire file. This is non-negligeabe,
                  so we cannot use Timing.time2 *)
               (fun () ->
-                Parser.translation_unit_file inf (Lexer.tokens_stream name text)) ()
+                Parser.translation_unit_file log_fuel (Lexer.tokens_stream name text)) ()
            with
-             | Parser.Parser.Inter.Fail_pr ->
+           | Parser.MenhirLibParser.Inter.Fail_pr ->
                  (* Theoretically impossible : implies inconsistencies
                     between grammars. *)
-               Diagnostics.fatal_error Diagnostics.no_loc "internal error while parsing"
-             | Parser.Parser.Inter.Timeout_pr -> assert false
-             | Parser.Parser.Inter.Parsed_pr (ast, _ ) -> ast) in
+              Diagnostics.fatal_error Diagnostics.no_loc "internal error while parsing"
+           | Parser.MenhirLibParser.Inter.Timeout_pr -> assert false
+           | Parser.MenhirLibParser.Inter.Parsed_pr (ast, _ ) -> ast) in
       let p1 = Timing.time "Elaboration" Elab.elab_file ast in
       Diagnostics.check_errors ();
       Timing.time2 "Emulations" transform_program t p1 name in

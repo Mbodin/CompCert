@@ -123,7 +123,7 @@ let insert_type ty =
           | TNamed (id,_) ->
               let typ = try
                 let _,t =
-                  List.find (fun a -> fst a = id.name) CBuiltins.builtins.Builtins.typedefs in
+                  List.find (fun a -> fst a = id.name) CBuiltins.builtins.builtin_typedefs in
                 Some (attr_aux t)
               with Not_found -> None in
               let t = {
@@ -223,7 +223,7 @@ let name_to_definition: (string,int) Hashtbl.t = Hashtbl.create 7
 (* Mapping from atom to debug id *)
 let atom_to_definition: (atom, int) Hashtbl.t = Hashtbl.create 7
 
-(* Various lookup functions for defintions *)
+(* Various lookup functions for definitions *)
 let find_gvar_stamp id =
   let id = (Hashtbl.find stamp_to_definition id) in
   let var = Hashtbl.find definitions id in
@@ -342,7 +342,7 @@ let insert_global_declaration env dec =
           replace_var id ({var with gvar_declaration = false;})
         end
       end else begin
-        (* Implict declarations need special handling *)
+        (* Implicit declarations need special handling *)
         let id' = try Hashtbl.find name_to_definition id.name with Not_found ->
           let id' = next_id () in
           Hashtbl.add name_to_definition id.name id';id' in
