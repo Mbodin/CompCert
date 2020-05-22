@@ -1,5 +1,5 @@
 {
-  "checksum": "c70bb45ed4383a9a463fe7254b8532ae",
+  "checksum": "3c5cd2abda9c8c5269f532efd0d7ca81",
   "root": "compcert@link-dev:./package.json",
   "node": {
     "ocaml@4.8.0@d41d8cd9": {
@@ -16,16 +16,16 @@
       "dependencies": [],
       "devDependencies": []
     },
-    "coq-flocq@git:git__AT__gitlab.inria.fr:flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de@de8df53d": {
+    "coq-flocq@git:https://gitlab.inria.fr/flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de@de8df53d": {
       "id":
-        "coq-flocq@git:git__AT__gitlab.inria.fr:flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de@de8df53d",
+        "coq-flocq@git:https://gitlab.inria.fr/flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de@de8df53d",
       "name": "coq-flocq",
       "version":
-        "git:git@gitlab.inria.fr:flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de",
+        "git:https://gitlab.inria.fr/flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de",
       "source": {
         "type": "install",
         "source": [
-          "git:git@gitlab.inria.fr:flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de"
+          "git:https://gitlab.inria.fr/flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de"
         ]
       },
       "overrides": [
@@ -60,8 +60,8 @@
       "overrides": [],
       "dependencies": [
         "ocaml@4.8.0@d41d8cd9",
-        "coq-flocq@git:git__AT__gitlab.inria.fr:flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de@de8df53d",
-        "@opam/menhir@opam:20200211@26571604",
+        "coq-flocq@git:https://gitlab.inria.fr/flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de@de8df53d",
+        "@opam/menhir@opam:20190626@bbeb8953",
         "@opam/dune@opam:2.5.0@aef1678b",
         "@opam/depgraph@opam:0.1.0@bc9dcbeb",
         "@opam/coq@opam:8.11.1@81a5947e"
@@ -644,89 +644,29 @@
         "@opam/result@opam:1.5@6b753c82", "@opam/dune@opam:2.5.0@aef1678b"
       ]
     },
-    "@opam/menhirSdk@opam:20200211@b2a79ec0": {
-      "id": "@opam/menhirSdk@opam:20200211@b2a79ec0",
-      "name": "@opam/menhirSdk",
-      "version": "opam:20200211",
-      "source": {
-        "type": "install",
-        "source": [
-          "archive:https://opam.ocaml.org/cache/md5/01/01577e5f15380c35bdaa8fd818204560#md5:01577e5f15380c35bdaa8fd818204560",
-          "archive:https://gitlab.inria.fr/fpottier/menhir/repository/20200211/archive.tar.gz#md5:01577e5f15380c35bdaa8fd818204560"
-        ],
-        "opam": {
-          "name": "menhirSdk",
-          "version": "20200211",
-          "path": "esy.lock/opam/menhirSdk.20200211"
-        }
-      },
-      "overrides": [],
-      "dependencies": [
-        "ocaml@4.8.0@d41d8cd9", "@opam/dune@opam:2.5.0@aef1678b",
-        "@esy-ocaml/substs@0.0.1@d41d8cd9"
-      ],
-      "devDependencies": [
-        "ocaml@4.8.0@d41d8cd9", "@opam/dune@opam:2.5.0@aef1678b"
-      ]
-    },
-    "@opam/menhirLib@opam:20200211@93d0f001": {
-      "id": "@opam/menhirLib@opam:20200211@93d0f001",
-      "name": "@opam/menhirLib",
-      "version": "opam:20200211",
-      "source": {
-        "type": "install",
-        "source": [
-          "archive:https://opam.ocaml.org/cache/md5/01/01577e5f15380c35bdaa8fd818204560#md5:01577e5f15380c35bdaa8fd818204560",
-          "archive:https://gitlab.inria.fr/fpottier/menhir/repository/20200211/archive.tar.gz#md5:01577e5f15380c35bdaa8fd818204560"
-        ],
-        "opam": {
-          "name": "menhirLib",
-          "version": "20200211",
-          "path": "esy.lock/opam/menhirLib.20200211"
-        }
-      },
-      "overrides": [],
-      "dependencies": [
-        "ocaml@4.8.0@d41d8cd9", "@opam/dune@opam:2.5.0@aef1678b",
-        "@esy-ocaml/substs@0.0.1@d41d8cd9"
-      ],
-      "devDependencies": [
-        "ocaml@4.8.0@d41d8cd9", "@opam/dune@opam:2.5.0@aef1678b"
-      ]
-    },
-    "@opam/menhir@opam:20200211@26571604": {
-      "id": "@opam/menhir@opam:20200211@26571604",
+    "@opam/menhir@opam:20190626@bbeb8953": {
+      "id": "@opam/menhir@opam:20190626@bbeb8953",
       "name": "@opam/menhir",
-      "version": "opam:20200211",
+      "version": "opam:20190626",
       "source": {
         "type": "install",
         "source": [
-          "archive:https://opam.ocaml.org/cache/md5/01/01577e5f15380c35bdaa8fd818204560#md5:01577e5f15380c35bdaa8fd818204560",
-          "archive:https://gitlab.inria.fr/fpottier/menhir/repository/20200211/archive.tar.gz#md5:01577e5f15380c35bdaa8fd818204560"
+          "archive:https://opam.ocaml.org/cache/md5/78/783961f8d124449a1a335cc8e50f013f#md5:783961f8d124449a1a335cc8e50f013f",
+          "archive:https://gitlab.inria.fr/fpottier/menhir/repository/20190626/archive.tar.gz#md5:783961f8d124449a1a335cc8e50f013f"
         ],
         "opam": {
           "name": "menhir",
-          "version": "20200211",
-          "path": "esy.lock/opam/menhir.20200211"
+          "version": "20190626",
+          "path": "esy.lock/opam/menhir.20190626"
         }
       },
-      "overrides": [
-        {
-          "opamoverride":
-            "esy.lock/overrides/opam__s__menhir_opam__c__20200211_opam_override"
-        }
-      ],
+      "overrides": [],
       "dependencies": [
-        "ocaml@4.8.0@d41d8cd9", "@opam/menhirSdk@opam:20200211@b2a79ec0",
-        "@opam/menhirLib@opam:20200211@93d0f001",
-        "@opam/fix@opam:20200131@0ecd2f01", "@opam/dune@opam:2.5.0@aef1678b",
+        "ocaml@4.8.0@d41d8cd9", "@opam/ocamlfind@opam:1.8.1@ff07b0f9",
+        "@opam/ocamlbuild@opam:0.14.0@6ac75d03",
         "@esy-ocaml/substs@0.0.1@d41d8cd9"
       ],
-      "devDependencies": [
-        "ocaml@4.8.0@d41d8cd9", "@opam/menhirSdk@opam:20200211@b2a79ec0",
-        "@opam/menhirLib@opam:20200211@93d0f001",
-        "@opam/dune@opam:2.5.0@aef1678b"
-      ]
+      "devDependencies": [ "ocaml@4.8.0@d41d8cd9" ]
     },
     "@opam/lwt_react@opam:1.1.3@72987fcf": {
       "id": "@opam/lwt_react@opam:1.1.3@72987fcf",
@@ -882,31 +822,6 @@
       "devDependencies": [
         "ocaml@4.8.0@d41d8cd9", "@opam/result@opam:1.5@6b753c82",
         "@opam/astring@opam:0.8.3@4e5e17d5"
-      ]
-    },
-    "@opam/fix@opam:20200131@0ecd2f01": {
-      "id": "@opam/fix@opam:20200131@0ecd2f01",
-      "name": "@opam/fix",
-      "version": "opam:20200131",
-      "source": {
-        "type": "install",
-        "source": [
-          "archive:https://opam.ocaml.org/cache/md5/99/991ff031666c662eaab638d2e0f4ac1d#md5:991ff031666c662eaab638d2e0f4ac1d",
-          "archive:https://gitlab.inria.fr/fpottier/fix/repository/20200131/archive.tar.gz#md5:991ff031666c662eaab638d2e0f4ac1d"
-        ],
-        "opam": {
-          "name": "fix",
-          "version": "20200131",
-          "path": "esy.lock/opam/fix.20200131"
-        }
-      },
-      "overrides": [],
-      "dependencies": [
-        "ocaml@4.8.0@d41d8cd9", "@opam/dune@opam:2.5.0@aef1678b",
-        "@esy-ocaml/substs@0.0.1@d41d8cd9"
-      ],
-      "devDependencies": [
-        "ocaml@4.8.0@d41d8cd9", "@opam/dune@opam:2.5.0@aef1678b"
       ]
     },
     "@opam/dune-private-libs@opam:2.5.1@60c1661f": {
