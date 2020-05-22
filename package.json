@@ -1,65 +1,64 @@
 {
-  "name": "compcert",
-  "version": "3.5",
-  "description": "Esy packaging for a library, subset of CompCert, that exports an API to manipulate Csharpminor",
-  "license": "INRIA Non-Commercial License Agreement",
-  "esy": {
-    "buildEnv": {
-      "HOME": "#{self.target_dir}",
-      "COQBIN": "#{@opam/coq.bin}/",
-      "COQLIB": "#{@opam/coq.lib}/coq/",
-      "COQPATH": "#{coq-flocq.install}/coq"
-    },
-    "build": [
-      ["./configure", "x86_64-#{os}", "--prefix", "#{self.install}", "--coqdevdir", "#{self.install}/coq/compcert"],
-      ["make", "-j", "4"],
-      ["make", "install"]
-    ],
-    "buildsInSource": true,
-    "exportedEnv": {
-      "COMPCERT_CONFIG": {
-        "val": "#{self.target_dir}/compcert.ini",
-        "scope": "global"
-      }
-    }
-  },
-  "scripts": {
-    "utop": "dune utop --root=_esy/default/build"
-  },
-  "dependencies": {
-    "@opam/coq": "8.10.1",
-    "@opam/menhir": "20181113",
-    "ocaml": "4.8.0",
-    "@opam/depgraph": "*",
-    "@opam/dune": ">=1.9",
-    "coq-flocq": "3.2.0"
-  },
-  "devDependencies": {
-    "@opam/utop": "*",
-    "@opam/odoc": "*",
-    "ocaml": "4.8.0"
-  },
-  "resolutions": {
-    "coq-flocq": {
-      "source": "git:git@gitlab.inria.fr:flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de",
-      "version": "3.2.0",
-      "override": {
-         "dependencies": {
-            "@opam/coq": "8.10.1"
-          },
-        "buildEnv": {
-          "HOME": "#{self.target_dir}",
-          "COQBIN": "#{@opam/coq.bin}",
-          "COQLIB": "#{@opam/coq.lib}/coq/",
-          "COQPATH": "#{self.install}:#{@opam/coq.lib}/coq/user-contrib/"
-        },
-        "build": [
-            ["./autogen.sh"],
-            ["./configure", "--libdir=#{self.install}/coq/Flocq"],
-            ["./remake", "--jobs=2"],
-            ["./remake", "install"]
-          ]
-        }
-    }
-  }
+	"name": "compcert",
+	"version": "3.5",
+	"description": "Esy packaging for a library, subset of CompCert, that exports an API to manipulate Csharpminor",
+	"license": "INRIA Non-Commercial License Agreement",
+	"esy": {
+		"buildEnv": {
+			"COQBIN": "#{@opam/coq.bin}/",
+			"COQLIB": "#{@opam/coq.lib}/coq/",
+			"COQPATH": "#{coq-flocq.install}/coq"
+		},
+		"build": [
+			["./configure", "x86_64-#{os}", "--prefix", "#{self.install}", "--coqdevdir", "#{self.install}/coq/compcert"],
+			["make", "-j", "4"],
+			["make", "install"]
+		],
+		"buildsInSource": true,
+		"exportedEnv": {
+			"COMPCERT_CONFIG": {
+				"val": "#{self.target_dir}/compcert.ini",
+				"scope": "global"
+			}
+		}
+	},
+	"scripts": {
+		"utop": "dune utop --root=_esy/default/build"
+	},
+	"dependencies": {
+		"@opam/coq": "~8.11",
+		"@opam/menhir": "20181113",
+		"ocaml": "4.8.0",
+		"@opam/depgraph": "*",
+		"@opam/dune": ">=1.9",
+		"coq-flocq": "3.2.0"
+	},
+	"devDependencies": {
+		"@opam/utop": "*",
+		"@opam/odoc": "*",
+		"ocaml": "4.8.0"
+	},
+	"resolutions": {
+		"coq-flocq": {
+			"source": "git:git@gitlab.inria.fr:flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de",
+			"version": "3.2.0",
+			"override": {
+				 "dependencies": {
+						"@opam/coq": "*"
+					},
+				"buildEnv": {
+					"HOME": "#{self.target_dir}",
+					"COQBIN": "#{@opam/coq.bin}",
+					"COQLIB": "#{@opam/coq.lib}/coq/",
+					"COQPATH": "#{@opam/coq.lib}/coq/user-contrib/"
+				},
+				"build": [
+						["./autogen.sh"],
+						["./configure", "--libdir=#{self.install}/coq/Flocq"],
+						["./remake", "--jobs=2"],
+						["./remake", "install"]
+					]
+				}
+		}
+	}
 }

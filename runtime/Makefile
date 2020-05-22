@@ -1,4 +1,4 @@
-include ../Makefile.config
+-include ../Makefile.config
 
 CFLAGS=-O1 -g -Wall
 

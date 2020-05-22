@@ -1,4 +1,4 @@
-include ../Makefile.config
+-include ../Makefile.config
 
 DIRS=c compression raytracer spass regression
 ifeq ($(CLIGHTGEN),true)

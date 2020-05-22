@@ -1,4 +1,4 @@
-include ../../Makefile.config
+-include ../../Makefile.config
 
 CC=../../ccomp 
 CFLAGS=$(CCOMPOPTS) -U__GNUC__ -stdlib ../../runtime -dclight -dasm

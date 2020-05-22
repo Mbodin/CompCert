@@ -1,5 +1,7 @@
 # Object files, in general
 *.vo
+*.vos
+*.vok
 *.glob
 *.o
 *.a
@@ -14,6 +16,7 @@
 # Emacs saves
 *~
 *.swp
+\#*\#
 # Executables and configuration
 /ccomp
 /ccomp.byte

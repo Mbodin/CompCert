@@ -26,7 +26,7 @@ Inductive result (A:Type) :=
   | Err: result A
   | OK: A -> result A.
 
-Arguments Err [A].
+Arguments Err {A}.
 Arguments OK [A].
 
 Definition bind {A B: Type} (f: result A) (g: A -> result B): result B :=
@@ -213,12 +213,12 @@ Definition parse buffer n_steps: result parse_result :=
 
 End Init.
 
-Arguments Fail_sr [init].
+Arguments Fail_sr {init}.
 Arguments Accept_sr [init] _ _.
 Arguments Progress_sr [init] _ _.
 
-Arguments Fail_pr [init].
-Arguments Timeout_pr [init].
+Arguments Fail_pr {init}.
+Arguments Timeout_pr {init}.
 Arguments Parsed_pr [init] _ _.
 
 End Make.

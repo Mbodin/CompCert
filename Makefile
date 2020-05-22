@@ -13,7 +13,7 @@
 #                                                                     #
 #######################################################################
 
-include Makefile.config
+-include Makefile.config
 
 ifeq ($(wildcard $(ARCH)_$(BITSIZE)),)
 ARCHDIRS=$(ARCH)
@@ -35,6 +35,13 @@ COQEXEC="$(COQBIN)coqtop" $(COQINCLUDES) -batch -load-vernac-source
 COQCHK="$(COQBIN)coqchk" $(COQINCLUDES)
 MENHIR=menhir
 CP=cp
+
+ifdef HOME
+MYHOME:=$(HOME)
+else
+MYHOME:=`pwd`
+endif
+EXPORT=export HOME=$(MYHOME); #
 
 VPATH=$(DIRS)
 GPATH=$(DIRS)
@@ -181,7 +188,7 @@ latexdoc:
 %.vo: %.v
 	@rm -f doc/$(*F).glob
 	@echo "COQC $*.v"
-	@$(COQC) -dump-glob doc/$(*F).glob $*.v
+	@$(EXPORT)$(COQC) -dump-glob doc/$(*F).glob $*.v
 
 %.v: %.vp tools/ndfun
 	@rm -f $*.v
@@ -222,7 +229,7 @@ depend: $(GENERATED) depend1
 
 depend1: $(FILES) exportclight/Clightdefs.v
 	@echo "Analyzing Coq dependencies"
-	@$(COQDEP) $^ > .depend
+	@$(EXPORT)$(COQDEP) $^ > .depend
 
 install:
 	install -d $(DESTDIR)$(BINDIR)
@@ -272,6 +279,9 @@ check-proof: $(FILES)
 
 print-includes:
 	@echo $(COQINCLUDES)
+
+_CoqProject:
+	echo $(COQINCLUDES) > $@
 
 -include .depend
 

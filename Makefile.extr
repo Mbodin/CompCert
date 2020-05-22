@@ -15,7 +15,7 @@
 
 # Second-stage Makefile, after Coq extraction
 
-include Makefile.config
+-include Makefile.config
 
 #
 # Variables from Makefile.config:
@@ -26,7 +26,7 @@ include Makefile.config
 
 # Menhir configuration.
 
-include Makefile.menhir
+-include Makefile.menhir
 
 #
 # Variables from Makefile.menhir:

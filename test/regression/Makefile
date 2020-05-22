@@ -1,4 +1,4 @@
-include ../../Makefile.config
+-include ../../Makefile.config
 
 CCOMP=../../ccomp
 CCOMPFLAGS=$(CCOMPOPTS) -stdlib ../../runtime \

@@ -1,4 +1,4 @@
-include ../../Makefile.config
+-include ../../Makefile.config
 
 CC=../../ccomp 
 CFLAGS=$(CCOMPOPTS) -stdlib ../../runtime -dparse -dclight -dasm -fstruct-return

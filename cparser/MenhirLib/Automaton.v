@@ -104,7 +104,7 @@ Module Types(Import Init:AutInit).
   | Fail_act: lookahead_action term.
   Arguments Shift_act [term].
   Arguments Reduce_act [term].
-  Arguments Fail_act [term].
+  Arguments Fail_act {term}.
 
   Inductive action :=
   | Default_reduce_act: production -> action
