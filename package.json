@@ -1,6 +1,6 @@
 {
 	"name": "compcert",
-	"version": "3.5",
+	"version": "3.7",
 	"description": "Esy packaging for CompCert",
 	"license": "INRIA Non-Commercial License Agreement",
 	"esy": {
@@ -27,9 +27,9 @@
     "extract": "./compileUtils/extract.sh"
 	},
 	"dependencies": {
-		"@opam/coq": "~8.11",
+		"@opam/coq": ">=8.8.0 <=8.11.1",
 		"@opam/menhir": ">=20190626 <20200123",
-		"ocaml": "^4.8.0",
+		"ocaml": ">=4.5 <5",
 		"@opam/depgraph": "*",
 		"@opam/dune": ">=2.0",
 		"coq-flocq": "3.2.0"
@@ -37,7 +37,7 @@
 	"devDependencies": {
 		"@opam/utop": "*",
 		"@opam/odoc": "*",
-		"ocaml": "4.8.1000"
+		"ocaml": ">=4.5 <5"
 	},
 	"resolutions": {
 		"coq-flocq": {

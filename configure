@@ -584,11 +584,12 @@ else
 fi
 
 MENHIR_REQUIRED=20190626
+MENHIR_LESS_THAN=20200123
 echo "Testing Menhir... " | tr -d '\n'
 menhir_ver=`menhir --version 2>/dev/null | sed -n -e 's/^.*version \([0-9]*\).*$/\1/p'`
 case "$menhir_ver" in
   20[0-9][0-9][0-9][0-9][0-9][0-9])
-      if test "$menhir_ver" -ge $MENHIR_REQUIRED; then
+      if test "$menhir_ver" -ge $MENHIR_REQUIRED -a "$menhir_ver" -lt $MENHIR_LESS_THAN; then
           echo "version $menhir_ver -- good!"
           menhir_dir=$(menhir --suggest-menhirLib | tr -d '\r' | tr '\\' '/')
           if test -z "$menhir_dir"; then
@@ -599,7 +600,11 @@ case "$menhir_ver" in
           fi
       else
           echo "version $menhir_ver -- UNSUPPORTED"
-          echo "Error: CompCert requires a version greater or equal to $MENHIR_REQUIRED."
+					if test "$menhir_ver" -ge $MENHIR_REQUIRED; then
+						echo "Error: CompCert requires a version greater or equal to $MENHIR_REQUIRED."
+					else
+						echo "Error: CompCert requires a version less than $MENHIR_LESS_THAN."
+					fi
           missingtools=true
       fi;;
   *)
@@ -624,6 +629,23 @@ if test -z "$make"; then
   echo "Error: make sure GNU Make version 3.80 or later is installed."
   missingtools=true
 fi
+
+echo "Looking for Flocq..."
+echo "COQLIB=$COQLIB"
+echo "COQPATH=$COQPATH"
+case "$COQPATH" in
+	*flocq*|*Flocq*) # Note that this is a very rough way to look for it…
+		echo "Flocq seems installed in COQPATH -- good!"
+		break;;
+	*)
+		if test -d "$COQLIB/user-contrib/Flocq"; then
+			echo "Flocq seems installed in COQLIB/user-contrib/Flocq."
+			break
+		else
+			echo "Flocq does not seem to be installed in COQPATH or COQLIB/user-contrib/Flocq."
+			missingtools=true
+		fi;;
+esac
 
 if $missingtools; then
   echo "One or several required tools are missing or too old.  Aborting."
