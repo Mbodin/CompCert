@@ -122,7 +122,7 @@ val type_of_params : (ident * coq_type) list -> typelist
 
 val typ_of_type : coq_type -> typ
 
-val opttyp_of_type : coq_type -> typ option
+val rettype_of_type : coq_type -> rettype
 
 val typlist_of_typelist : typelist -> typ list
 

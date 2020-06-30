@@ -35,8 +35,11 @@
 		"coq-flocq": "3.2.0"
 	},
 	"devDependencies": {
-		"@opam/utop": "*",
-		"@opam/odoc": "*"
+    "@opam/merlin": "*",
+    "@opam/utop": "*",
+    "@opam/odoc": "*",
+    "ocaml": "4.10.0", 
+    "@opam/coq": "8.11.1"
 	},
 	"resolutions": {
 		"coq-flocq": {

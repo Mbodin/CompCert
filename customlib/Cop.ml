@@ -139,8 +139,8 @@ let classify_cast tfrom = function
       | _ -> Coq_cast_case_default))
 | Tpointer (_, _) ->
   (match tfrom with
-   | Tint (_, _, _) ->
-     if ptr64 then Coq_cast_case_i2l Unsigned else Coq_cast_case_pointer
+   | Tint (_, si, _) ->
+     if ptr64 then Coq_cast_case_i2l si else Coq_cast_case_pointer
    | Tlong (_, _) ->
      if ptr64
      then Coq_cast_case_pointer

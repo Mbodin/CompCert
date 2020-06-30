@@ -14,16 +14,16 @@ type builtin_sem =
   coq_val list -> coq_val option
   (* singleton inductive, whose constructor was mkbuiltin *)
 
-val bs_sem : typ -> builtin_sem -> coq_val list -> coq_val option
+val bs_sem : rettype -> builtin_sem -> coq_val list -> coq_val option
 
-val mkbuiltin_v1t : typ -> (coq_val -> coq_val) -> builtin_sem
+val mkbuiltin_v1t : rettype -> (coq_val -> coq_val) -> builtin_sem
 
-val mkbuiltin_v2t : typ -> (coq_val -> coq_val -> coq_val) -> builtin_sem
+val mkbuiltin_v2t : rettype -> (coq_val -> coq_val -> coq_val) -> builtin_sem
 
-val mkbuiltin_v1p : typ -> (coq_val -> coq_val option) -> builtin_sem
+val mkbuiltin_v1p : rettype -> (coq_val -> coq_val option) -> builtin_sem
 
 val mkbuiltin_v2p :
-  typ -> (coq_val -> coq_val -> coq_val option) -> builtin_sem
+  rettype -> (coq_val -> coq_val -> coq_val option) -> builtin_sem
 
 type valty = __
 

@@ -14,12 +14,12 @@ type builtin_sem =
   coq_val list -> coq_val option
   (* singleton inductive, whose constructor was mkbuiltin *)
 
-(** val bs_sem : typ -> builtin_sem -> coq_val list -> coq_val option **)
+(** val bs_sem : rettype -> builtin_sem -> coq_val list -> coq_val option **)
 
 let bs_sem _ b =
   b
 
-(** val mkbuiltin_v1t : typ -> (coq_val -> coq_val) -> builtin_sem **)
+(** val mkbuiltin_v1t : rettype -> (coq_val -> coq_val) -> builtin_sem **)
 
 let mkbuiltin_v1t _ f = function
 | [] -> None
@@ -28,7 +28,7 @@ let mkbuiltin_v1t _ f = function
               | _ :: _ -> None)
 
 (** val mkbuiltin_v2t :
-    typ -> (coq_val -> coq_val -> coq_val) -> builtin_sem **)
+    rettype -> (coq_val -> coq_val -> coq_val) -> builtin_sem **)
 
 let mkbuiltin_v2t _ f = function
 | [] -> None
@@ -39,7 +39,8 @@ let mkbuiltin_v2t _ f = function
                   | [] -> Some (f v1 v2)
                   | _ :: _ -> None))
 
-(** val mkbuiltin_v1p : typ -> (coq_val -> coq_val option) -> builtin_sem **)
+(** val mkbuiltin_v1p :
+    rettype -> (coq_val -> coq_val option) -> builtin_sem **)
 
 let mkbuiltin_v1p _ f = function
 | [] -> None
@@ -48,7 +49,7 @@ let mkbuiltin_v1p _ f = function
               | _ :: _ -> None)
 
 (** val mkbuiltin_v2p :
-    typ -> (coq_val -> coq_val -> coq_val option) -> builtin_sem **)
+    rettype -> (coq_val -> coq_val -> coq_val option) -> builtin_sem **)
 
 let mkbuiltin_v2p _ f = function
 | [] -> None
@@ -91,14 +92,14 @@ let proj_num t k0 v k1 =
 (** val mkbuiltin_n1t : typ -> typ -> (valty -> valty) -> builtin_sem **)
 
 let mkbuiltin_n1t targ1 tres f =
-  mkbuiltin_v1t tres (fun v1 ->
+  mkbuiltin_v1t (Tret tres) (fun v1 ->
     proj_num targ1 Vundef v1 (fun x -> inj_num tres (f x)))
 
 (** val mkbuiltin_n2t :
     typ -> typ -> typ -> (valty -> valty -> valty) -> builtin_sem **)
 
 let mkbuiltin_n2t targ1 targ2 tres f =
-  mkbuiltin_v2t tres (fun v1 v2 ->
+  mkbuiltin_v2t (Tret tres) (fun v1 v2 ->
     proj_num targ1 Vundef v1 (fun x1 ->
       proj_num targ2 Vundef v2 (fun x2 -> inj_num tres (f x1 x2))))
 
@@ -106,7 +107,7 @@ let mkbuiltin_n2t targ1 targ2 tres f =
     typ -> typ -> (valty -> valty option) -> builtin_sem **)
 
 let mkbuiltin_n1p targ1 tres f =
-  mkbuiltin_v1p tres (fun v1 ->
+  mkbuiltin_v1p (Tret tres) (fun v1 ->
     proj_num targ1 None v1 (fun x -> option_map (inj_num tres) (f x)))
 
 (** val lookup_builtin :
@@ -191,46 +192,46 @@ let standard_builtin_table =
 
 let standard_builtin_sig = function
 | BI_select t ->
-  { sig_args = (Tint :: (t :: (t :: []))); sig_res = (Some t); sig_cc =
+  { sig_args = (Tint :: (t :: (t :: []))); sig_res = (Tret t); sig_cc =
     cc_default }
 | BI_fabs ->
-  { sig_args = (Tfloat :: []); sig_res = (Some Tfloat); sig_cc = cc_default }
+  { sig_args = (Tfloat :: []); sig_res = (Tret Tfloat); sig_cc = cc_default }
 | BI_fsqrt ->
-  { sig_args = (Tfloat :: []); sig_res = (Some Tfloat); sig_cc = cc_default }
+  { sig_args = (Tfloat :: []); sig_res = (Tret Tfloat); sig_cc = cc_default }
 | BI_negl ->
-  { sig_args = (Tlong :: []); sig_res = (Some Tlong); sig_cc = cc_default }
+  { sig_args = (Tlong :: []); sig_res = (Tret Tlong); sig_cc = cc_default }
 | BI_mull ->
-  { sig_args = (Tint :: (Tint :: [])); sig_res = (Some Tlong); sig_cc =
+  { sig_args = (Tint :: (Tint :: [])); sig_res = (Tret Tlong); sig_cc =
     cc_default }
 | BI_i16_bswap ->
-  { sig_args = (Tint :: []); sig_res = (Some Tint); sig_cc = cc_default }
+  { sig_args = (Tint :: []); sig_res = (Tret Tint); sig_cc = cc_default }
 | BI_i32_bswap ->
-  { sig_args = (Tint :: []); sig_res = (Some Tint); sig_cc = cc_default }
+  { sig_args = (Tint :: []); sig_res = (Tret Tint); sig_cc = cc_default }
 | BI_i64_bswap ->
-  { sig_args = (Tlong :: []); sig_res = (Some Tlong); sig_cc = cc_default }
+  { sig_args = (Tlong :: []); sig_res = (Tret Tlong); sig_cc = cc_default }
 | BI_i64_shl ->
-  { sig_args = (Tlong :: (Tint :: [])); sig_res = (Some Tlong); sig_cc =
+  { sig_args = (Tlong :: (Tint :: [])); sig_res = (Tret Tlong); sig_cc =
     cc_default }
 | BI_i64_shr ->
-  { sig_args = (Tlong :: (Tint :: [])); sig_res = (Some Tlong); sig_cc =
+  { sig_args = (Tlong :: (Tint :: [])); sig_res = (Tret Tlong); sig_cc =
     cc_default }
 | BI_i64_sar ->
-  { sig_args = (Tlong :: (Tint :: [])); sig_res = (Some Tlong); sig_cc =
+  { sig_args = (Tlong :: (Tint :: [])); sig_res = (Tret Tlong); sig_cc =
     cc_default }
 | BI_i64_dtos ->
-  { sig_args = (Tfloat :: []); sig_res = (Some Tlong); sig_cc = cc_default }
+  { sig_args = (Tfloat :: []); sig_res = (Tret Tlong); sig_cc = cc_default }
 | BI_i64_dtou ->
-  { sig_args = (Tfloat :: []); sig_res = (Some Tlong); sig_cc = cc_default }
+  { sig_args = (Tfloat :: []); sig_res = (Tret Tlong); sig_cc = cc_default }
 | BI_i64_stod ->
-  { sig_args = (Tlong :: []); sig_res = (Some Tfloat); sig_cc = cc_default }
+  { sig_args = (Tlong :: []); sig_res = (Tret Tfloat); sig_cc = cc_default }
 | BI_i64_utod ->
-  { sig_args = (Tlong :: []); sig_res = (Some Tfloat); sig_cc = cc_default }
+  { sig_args = (Tlong :: []); sig_res = (Tret Tfloat); sig_cc = cc_default }
 | BI_i64_stof ->
-  { sig_args = (Tlong :: []); sig_res = (Some Tsingle); sig_cc = cc_default }
+  { sig_args = (Tlong :: []); sig_res = (Tret Tsingle); sig_cc = cc_default }
 | BI_i64_utof ->
-  { sig_args = (Tlong :: []); sig_res = (Some Tsingle); sig_cc = cc_default }
+  { sig_args = (Tlong :: []); sig_res = (Tret Tsingle); sig_cc = cc_default }
 | _ ->
-  { sig_args = (Tlong :: (Tlong :: [])); sig_res = (Some Tlong); sig_cc =
+  { sig_args = (Tlong :: (Tlong :: [])); sig_res = (Tret Tlong); sig_cc =
     cc_default }
 
 (** val standard_builtin_sem : standard_builtin -> builtin_sem **)
@@ -258,9 +259,9 @@ let standard_builtin_sem = function
 | BI_fabs -> mkbuiltin_n1t Tfloat Tfloat (Obj.magic Float.abs)
 | BI_fsqrt -> mkbuiltin_n1t Tfloat Tfloat (Obj.magic Float.sqrt)
 | BI_negl -> mkbuiltin_n1t Tlong Tlong (Obj.magic Int64.neg)
-| BI_addl -> mkbuiltin_v2t Tlong Val.addl
-| BI_subl -> mkbuiltin_v2t Tlong Val.subl
-| BI_mull -> mkbuiltin_v2t Tlong Val.mull'
+| BI_addl -> mkbuiltin_v2t (Tret Tlong) Val.addl
+| BI_subl -> mkbuiltin_v2t (Tret Tlong) Val.subl
+| BI_mull -> mkbuiltin_v2t (Tret Tlong) Val.mull'
 | BI_i16_bswap ->
   mkbuiltin_n1t Tint Tint (fun n ->
     Obj.magic Int.repr
@@ -279,13 +280,13 @@ let standard_builtin_sem = function
             (Int64.unsigned (Obj.magic n))))))
 | BI_i64_umulh -> mkbuiltin_n2t Tlong Tlong Tlong (Obj.magic Int64.mulhu)
 | BI_i64_smulh -> mkbuiltin_n2t Tlong Tlong Tlong (Obj.magic Int64.mulhs)
-| BI_i64_sdiv -> mkbuiltin_v2p Tlong Val.divls
-| BI_i64_udiv -> mkbuiltin_v2p Tlong Val.divlu
-| BI_i64_smod -> mkbuiltin_v2p Tlong Val.modls
-| BI_i64_umod -> mkbuiltin_v2p Tlong Val.modlu
-| BI_i64_shl -> mkbuiltin_v2t Tlong Val.shll
-| BI_i64_shr -> mkbuiltin_v2t Tlong Val.shrlu
-| BI_i64_sar -> mkbuiltin_v2t Tlong Val.shrl
+| BI_i64_sdiv -> mkbuiltin_v2p (Tret Tlong) Val.divls
+| BI_i64_udiv -> mkbuiltin_v2p (Tret Tlong) Val.divlu
+| BI_i64_smod -> mkbuiltin_v2p (Tret Tlong) Val.modls
+| BI_i64_umod -> mkbuiltin_v2p (Tret Tlong) Val.modlu
+| BI_i64_shl -> mkbuiltin_v2t (Tret Tlong) Val.shll
+| BI_i64_shr -> mkbuiltin_v2t (Tret Tlong) Val.shrlu
+| BI_i64_sar -> mkbuiltin_v2t (Tret Tlong) Val.shrl
 | BI_i64_dtos -> mkbuiltin_n1p Tfloat Tlong (Obj.magic Float.to_long)
 | BI_i64_dtou -> mkbuiltin_n1p Tfloat Tlong (Obj.magic Float.to_longu)
 | BI_i64_stod -> mkbuiltin_n1t Tlong Tfloat (Obj.magic Float.of_long)

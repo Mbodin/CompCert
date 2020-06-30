@@ -858,7 +858,7 @@ let ebuiltin ef tyargs args tyres =
     (match check_arguments args tyargs with
      | OK _ ->
        if (&&) ((fun x -> x) (type_eq tyres Tvoid))
-            ((fun x -> x) (opt_typ_eq (ef_sig ef).sig_res None))
+            ((fun x -> x) (rettype_eq (ef_sig ef).sig_res AST.Tvoid))
        then OK (Ebuiltin (ef, tyargs, args, tyres))
        else Error
               (msg
@@ -1207,7 +1207,10 @@ let retype_fundef ce e fd = match fd with
   (match retype_function ce e f with
    | OK x -> OK (Internal x)
    | Error msg0 -> Error msg0)
-| External (_, _, _, _) -> OK fd
+| External (ef, _, res0, _) ->
+  if rettype_eq (ef_sig ef).sig_res (rettype_of_type res0)
+  then OK fd
+  else assertion_failed
 
 (** val typecheck_program : Csyntax.program -> Csyntax.program res **)
 

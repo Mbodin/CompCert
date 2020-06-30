@@ -3,6 +3,7 @@ open Archi
 open BinNums
 open Clight
 open Cminor
+open Conventions1
 open Cop
 open Csharpminor
 open Ctypes
@@ -127,6 +128,11 @@ val transl_arglist :
   composite_env -> Clight.expr list -> typelist -> expr list res
 
 val typlist_of_arglist : Clight.expr list -> typelist -> typ list
+
+val make_normalization : coq_type -> expr -> expr
+
+val make_funcall :
+  ident option -> coq_type -> signature -> expr -> expr list -> stmt
 
 val transl_statement :
   composite_env -> coq_type -> nat -> nat -> statement -> stmt res
