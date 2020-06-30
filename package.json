@@ -27,9 +27,9 @@
     "extract": "./compileUtils/extract.sh"
 	},
 	"dependencies": {
+		"ocaml": ">=4.8.1000",
 		"@opam/coq": ">=8.8.0 <=8.11.1",
 		"@opam/menhir": ">=20190626 <20200123",
-		"ocaml": "4.8.1000",
 		"@opam/depgraph": "*",
 		"@opam/dune": ">=2.0",
 		"coq-flocq": "3.2.0"
@@ -44,6 +44,7 @@
 			"version": "3.2.0",
 			"override": {
 				 "dependencies": {
+					  "ocaml": "*",
 						"@opam/coq": "*"
 					},
 				"buildEnv": {
