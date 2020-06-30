@@ -50,7 +50,7 @@ let coq_Epreincr id l ty =
 
 let coq_Eselection r1 r2 r3 ty =
   let t = typ_of_type ty in
-  let sg = { sig_args = (AST.Tint :: (t :: (t :: []))); sig_res = (Some t);
+  let sg = { sig_args = (AST.Tint :: (t :: (t :: []))); sig_res = (Tret t);
     sig_cc = cc_default }
   in
   Ebuiltin ((EF_builtin

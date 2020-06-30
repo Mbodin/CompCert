@@ -3,6 +3,7 @@ open Archi
 open BinNums
 open Clight
 open Cminor
+open Conventions1
 open Cop
 open Csharpminor
 open Ctypes
@@ -669,6 +670,36 @@ let rec typlist_of_arglist al tyl =
                                                                     a2 Tnil)
      | Tcons (ty1, ty2) -> (typ_of_type ty1) :: (typlist_of_arglist a2 ty2))
 
+(** val make_normalization : coq_type -> expr -> expr **)
+
+let make_normalization t a =
+  match t with
+  | Tint (i, s, _) ->
+    (match i with
+     | I8 ->
+       (match s with
+        | Signed -> Eunop (Ocast8signed, a)
+        | Unsigned -> Eunop (Ocast8unsigned, a))
+     | I16 ->
+       (match s with
+        | Signed -> Eunop (Ocast16signed, a)
+        | Unsigned -> Eunop (Ocast16unsigned, a))
+     | I32 -> a
+     | IBool -> Eunop (Ocast8unsigned, a))
+  | _ -> a
+
+(** val make_funcall :
+    ident option -> coq_type -> signature -> expr -> expr list -> stmt **)
+
+let make_funcall x tres sg fn args =
+  match x with
+  | Some id ->
+    if return_value_needs_normalization sg.sig_res
+    then Sseq ((Scall (x, sg, fn, args)), (Sset (id,
+           (make_normalization tres (Evar id)))))
+    else Scall (x, sg, fn, args)
+  | None -> Scall (x, sg, fn, args)
+
 (** val transl_statement :
     composite_env -> coq_type -> nat -> nat -> statement -> stmt res **)
 
@@ -695,8 +726,10 @@ let rec transl_statement ce tyret nbrk ncnt = function
       | OK x0 ->
         (match transl_arglist ce cl args with
          | OK x1 ->
-           OK (Scall (x, { sig_args = (typlist_of_arglist cl args); sig_res =
-             (opttyp_of_type res0); sig_cc = cconv }, x0, x1))
+           let sg = { sig_args = (typlist_of_arglist cl args); sig_res =
+             (rettype_of_type res0); sig_cc = cconv }
+           in
+           OK (make_funcall x res0 sg x0 x1)
          | Error msg0 -> Error msg0)
       | Error msg0 -> Error msg0)
    | Coq_fun_default ->
@@ -789,7 +822,7 @@ let transl_var ce v =
 
 let signature_of_function f =
   { sig_args = (map typ_of_type (map snd f.Clight.fn_params)); sig_res =
-    (opttyp_of_type f.fn_return); sig_cc = f.fn_callconv }
+    (rettype_of_type f.fn_return); sig_cc = f.fn_callconv }
 
 (** val transl_function :
     composite_env -> Clight.coq_function -> coq_function res **)

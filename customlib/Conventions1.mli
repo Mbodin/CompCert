@@ -44,8 +44,4 @@ val loc_arguments_64 : typ list -> coq_Z -> coq_Z -> coq_Z -> loc rpair list
 
 val loc_arguments : signature -> loc rpair list
 
-val size_arguments_32 : typ list -> coq_Z -> coq_Z
-
-val size_arguments_64 : typ list -> coq_Z -> coq_Z -> coq_Z -> coq_Z
-
-val size_arguments : signature -> coq_Z
+val return_value_needs_normalization : rettype -> bool

@@ -1,3 +1,3 @@
-let version = "3.6"
+let version = "3.7"
 let buildnr = ""
 let tag = ""

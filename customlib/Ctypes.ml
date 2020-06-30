@@ -497,10 +497,25 @@ let typ_of_type = function
                     | F64 -> AST.Tfloat)
 | _ -> coq_Tptr
 
-(** val opttyp_of_type : coq_type -> typ option **)
+(** val rettype_of_type : coq_type -> rettype **)
 
-let opttyp_of_type t0 =
-  if type_eq t0 Tvoid then None else Some (typ_of_type t0)
+let rettype_of_type = function
+| Tint (i, s, _) ->
+  (match i with
+   | I8 -> (match s with
+            | Signed -> Tint8signed
+            | Unsigned -> Tint8unsigned)
+   | I16 -> (match s with
+             | Signed -> Tint16signed
+             | Unsigned -> Tint16unsigned)
+   | I32 -> Tret AST.Tint
+   | IBool -> Tint8unsigned)
+| Tlong (_, _) -> Tret AST.Tlong
+| Tfloat (f, _) -> (match f with
+                    | F32 -> Tret Tsingle
+                    | F64 -> Tret AST.Tfloat)
+| Tpointer (_, _) -> Tret coq_Tptr
+| _ -> AST.Tvoid
 
 (** val typlist_of_typelist : typelist -> typ list **)
 
@@ -512,7 +527,7 @@ let rec typlist_of_typelist = function
     typelist -> coq_type -> calling_convention -> signature **)
 
 let signature_of_type args res0 cc =
-  { sig_args = (typlist_of_typelist args); sig_res = (opttyp_of_type res0);
+  { sig_args = (typlist_of_typelist args); sig_res = (rettype_of_type res0);
     sig_cc = cc }
 
 (** val sizeof_composite :

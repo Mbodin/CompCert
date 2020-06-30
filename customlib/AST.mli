@@ -25,8 +25,6 @@ type typ =
 
 val typ_eq : typ -> typ -> bool
 
-val opt_typ_eq : typ option -> typ option -> bool
-
 val list_typ_eq : typ list -> typ list -> bool
 
 val coq_Tptr : typ
@@ -35,6 +33,18 @@ val typesize : typ -> coq_Z
 
 val subtype : typ -> typ -> bool
 
+type rettype =
+| Tret of typ
+| Tint8signed
+| Tint8unsigned
+| Tint16signed
+| Tint16unsigned
+| Tvoid
+
+val rettype_eq : rettype -> rettype -> bool
+
+val proj_rettype : rettype -> typ
+
 type calling_convention = { cc_vararg : bool; cc_unproto : bool;
                             cc_structret : bool }
 
@@ -42,7 +52,7 @@ val cc_default : calling_convention
 
 val calling_convention_eq : calling_convention -> calling_convention -> bool
 
-type signature = { sig_args : typ list; sig_res : typ option;
+type signature = { sig_args : typ list; sig_res : rettype;
                    sig_cc : calling_convention }
 
 val proj_sig_res : signature -> typ
@@ -68,6 +78,8 @@ val chunk_eq : memory_chunk -> memory_chunk -> bool
 val coq_Mptr : memory_chunk
 
 val type_of_chunk : memory_chunk -> typ
+
+val rettype_of_chunk : memory_chunk -> rettype
 
 val chunk_of_type : typ -> memory_chunk
 

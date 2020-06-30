@@ -300,6 +300,20 @@ let do_ef_free w vargs m =
   | [] -> None
   | v :: l ->
     (match v with
+     | Vint n ->
+       (match l with
+        | [] ->
+          if (&&) ((fun x -> x) (Int.eq_dec n Int.zero)) (negb ptr64)
+          then Some (((w, coq_E0), Vundef), m)
+          else None
+        | _ :: _ -> None)
+     | Vlong n ->
+       (match l with
+        | [] ->
+          if (&&) ((fun x -> x) (Int64.eq_dec n Int64.zero)) ptr64
+          then Some (((w, coq_E0), Vundef), m)
+          else None
+        | _ :: _ -> None)
      | Vptr (b, lo) ->
        (match l with
         | [] ->
@@ -425,8 +439,8 @@ let do_ef_debug _ _ _ w _ m =
 let do_builtin_or_external ge do_external_function name sg w vargs m =
   match lookup_builtin_function name sg with
   | Some bf ->
-    (match bs_sem (proj_sig_res (builtin_function_sig bf))
-             (builtin_function_sem bf) vargs with
+    (match bs_sem (builtin_function_sig bf).sig_res (builtin_function_sem bf)
+             vargs with
      | Some v -> Some (((w, coq_E0), v), m)
      | None -> None)
   | None -> do_external_function name sg (Genv.to_senv ge.genv_genv) w vargs m

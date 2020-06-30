@@ -90,25 +90,20 @@ let is_float_reg = function
 (** val loc_result_32 : signature -> mreg rpair **)
 
 let loc_result_32 s =
-  match s.sig_res with
-  | Some t ->
-    (match t with
-     | Tint -> One AX
-     | Tlong -> Twolong (DX, AX)
-     | Tany32 -> One AX
-     | Tany64 -> One X0
-     | _ -> One FP0)
-  | None -> One AX
+  match proj_sig_res s with
+  | Tint -> One AX
+  | Tlong -> Twolong (DX, AX)
+  | Tany32 -> One AX
+  | Tany64 -> One X0
+  | _ -> One FP0
 
 (** val loc_result_64 : signature -> mreg rpair **)
 
 let loc_result_64 s =
-  match s.sig_res with
-  | Some t -> (match t with
-               | Tfloat -> One X0
-               | Tsingle -> One X0
-               | _ -> One AX)
-  | None -> One AX
+  match proj_sig_res s with
+  | Tfloat -> One X0
+  | Tsingle -> One X0
+  | _ -> One AX
 
 (** val loc_result : signature -> mreg rpair **)
 
@@ -181,39 +176,9 @@ let loc_arguments s =
   then loc_arguments_64 s.sig_args Z0 Z0 Z0
   else loc_arguments_32 s.sig_args Z0
 
-(** val size_arguments_32 : typ list -> coq_Z -> coq_Z **)
+(** val return_value_needs_normalization : rettype -> bool **)
 
-let rec size_arguments_32 tyl ofs =
-  match tyl with
-  | [] -> ofs
-  | ty :: tys -> size_arguments_32 tys (Z.add ofs (typesize ty))
-
-(** val size_arguments_64 : typ list -> coq_Z -> coq_Z -> coq_Z -> coq_Z **)
-
-let rec size_arguments_64 tyl ir fr ofs =
-  match tyl with
-  | [] -> ofs
-  | t :: tys ->
-    (match t with
-     | Tfloat ->
-       (match list_nth_z float_param_regs fr with
-        | Some _ -> size_arguments_64 tys ir (Z.add fr (Zpos Coq_xH)) ofs
-        | None ->
-          size_arguments_64 tys ir fr (Z.add ofs (Zpos (Coq_xO Coq_xH))))
-     | Tsingle ->
-       (match list_nth_z float_param_regs fr with
-        | Some _ -> size_arguments_64 tys ir (Z.add fr (Zpos Coq_xH)) ofs
-        | None ->
-          size_arguments_64 tys ir fr (Z.add ofs (Zpos (Coq_xO Coq_xH))))
-     | _ ->
-       (match list_nth_z int_param_regs ir with
-        | Some _ -> size_arguments_64 tys (Z.add ir (Zpos Coq_xH)) fr ofs
-        | None ->
-          size_arguments_64 tys ir fr (Z.add ofs (Zpos (Coq_xO Coq_xH)))))
-
-(** val size_arguments : signature -> coq_Z **)
-
-let size_arguments s =
-  if ptr64
-  then size_arguments_64 s.sig_args Z0 Z0 Z0
-  else size_arguments_32 s.sig_args Z0
+let return_value_needs_normalization = function
+| Tret _ -> false
+| Tvoid -> false
+| _ -> true

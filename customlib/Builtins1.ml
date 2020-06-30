@@ -17,7 +17,7 @@ let platform_builtin_table =
 (** val platform_builtin_sig : platform_builtin -> signature **)
 
 let platform_builtin_sig _ =
-  { sig_args = (Tfloat :: (Tfloat :: [])); sig_res = (Some Tfloat); sig_cc =
+  { sig_args = (Tfloat :: (Tfloat :: [])); sig_res = (Tret Tfloat); sig_cc =
     cc_default }
 
 (** val platform_builtin_sem : platform_builtin -> builtin_sem **)

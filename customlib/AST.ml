@@ -51,11 +51,6 @@ let typ_eq t1 t2 =
                | Tany64 -> true
                | _ -> false)
 
-(** val opt_typ_eq : typ option -> typ option -> bool **)
-
-let opt_typ_eq =
-  option_eq typ_eq
-
 (** val list_typ_eq : typ list -> typ list -> bool **)
 
 let list_typ_eq =
@@ -106,6 +101,43 @@ let subtype ty1 ty2 =
                | Tany64 -> true
                | _ -> false)
 
+type rettype =
+| Tret of typ
+| Tint8signed
+| Tint8unsigned
+| Tint16signed
+| Tint16unsigned
+| Tvoid
+
+(** val rettype_eq : rettype -> rettype -> bool **)
+
+let rettype_eq t1 t2 =
+  match t1 with
+  | Tret x -> (match t2 with
+               | Tret t0 -> typ_eq x t0
+               | _ -> false)
+  | Tint8signed -> (match t2 with
+                    | Tint8signed -> true
+                    | _ -> false)
+  | Tint8unsigned -> (match t2 with
+                      | Tint8unsigned -> true
+                      | _ -> false)
+  | Tint16signed -> (match t2 with
+                     | Tint16signed -> true
+                     | _ -> false)
+  | Tint16unsigned -> (match t2 with
+                       | Tint16unsigned -> true
+                       | _ -> false)
+  | Tvoid -> (match t2 with
+              | Tvoid -> true
+              | _ -> false)
+
+(** val proj_rettype : rettype -> typ **)
+
+let rec proj_rettype = function
+| Tret t0 -> t0
+| _ -> Tint
+
 type calling_convention = { cc_vararg : bool; cc_unproto : bool;
                             cc_structret : bool }
 
@@ -130,15 +162,13 @@ let calling_convention_eq x y =
        else false
   else false
 
-type signature = { sig_args : typ list; sig_res : typ option;
+type signature = { sig_args : typ list; sig_res : rettype;
                    sig_cc : calling_convention }
 
 (** val proj_sig_res : signature -> typ **)
 
 let proj_sig_res s =
-  match s.sig_res with
-  | Some t0 -> t0
-  | None -> Tint
+  proj_rettype s.sig_res
 
 (** val signature_eq : signature -> signature -> bool **)
 
@@ -146,7 +176,7 @@ let signature_eq s1 s2 =
   let { sig_args = sig_args0; sig_res = sig_res0; sig_cc = sig_cc0 } = s1 in
   let { sig_args = sig_args1; sig_res = sig_res1; sig_cc = sig_cc1 } = s2 in
   if list_typ_eq sig_args0 sig_args1
-  then if opt_typ_eq sig_res0 sig_res1
+  then if rettype_eq sig_res0 sig_res1
        then calling_convention_eq sig_cc0 sig_cc1
        else false
   else false
@@ -154,7 +184,7 @@ let signature_eq s1 s2 =
 (** val signature_main : signature **)
 
 let signature_main =
-  { sig_args = []; sig_res = (Some Tint); sig_cc = cc_default }
+  { sig_args = []; sig_res = (Tret Tint); sig_cc = cc_default }
 
 type memory_chunk =
 | Mint8signed
@@ -217,6 +247,20 @@ let type_of_chunk = function
 | Many32 -> Tany32
 | Many64 -> Tany64
 | _ -> Tint
+
+(** val rettype_of_chunk : memory_chunk -> rettype **)
+
+let rettype_of_chunk = function
+| Mint8signed -> Tint8signed
+| Mint8unsigned -> Tint8unsigned
+| Mint16signed -> Tint16signed
+| Mint16unsigned -> Tint16unsigned
+| Mint32 -> Tret Tint
+| Mint64 -> Tret Tlong
+| Mfloat32 -> Tret Tsingle
+| Mfloat64 -> Tret Tfloat
+| Many32 -> Tret Tany32
+| Many64 -> Tret Tany64
 
 (** val chunk_of_type : typ -> memory_chunk **)
 
@@ -366,26 +410,26 @@ let ef_sig = function
 | EF_builtin (_, sg) -> sg
 | EF_runtime (_, sg) -> sg
 | EF_vload chunk ->
-  { sig_args = (coq_Tptr :: []); sig_res = (Some (type_of_chunk chunk));
-    sig_cc = cc_default }
+  { sig_args = (coq_Tptr :: []); sig_res = (rettype_of_chunk chunk); sig_cc =
+    cc_default }
 | EF_vstore chunk ->
-  { sig_args = (coq_Tptr :: ((type_of_chunk chunk) :: [])); sig_res = None;
+  { sig_args = (coq_Tptr :: ((type_of_chunk chunk) :: [])); sig_res = Tvoid;
     sig_cc = cc_default }
 | EF_malloc ->
-  { sig_args = (coq_Tptr :: []); sig_res = (Some coq_Tptr); sig_cc =
+  { sig_args = (coq_Tptr :: []); sig_res = (Tret coq_Tptr); sig_cc =
     cc_default }
 | EF_free ->
-  { sig_args = (coq_Tptr :: []); sig_res = None; sig_cc = cc_default }
+  { sig_args = (coq_Tptr :: []); sig_res = Tvoid; sig_cc = cc_default }
 | EF_memcpy (_, _) ->
-  { sig_args = (coq_Tptr :: (coq_Tptr :: [])); sig_res = None; sig_cc =
+  { sig_args = (coq_Tptr :: (coq_Tptr :: [])); sig_res = Tvoid; sig_cc =
     cc_default }
 | EF_annot (_, _, targs) ->
-  { sig_args = targs; sig_res = None; sig_cc = cc_default }
+  { sig_args = targs; sig_res = Tvoid; sig_cc = cc_default }
 | EF_annot_val (_, _, targ) ->
-  { sig_args = (targ :: []); sig_res = (Some targ); sig_cc = cc_default }
+  { sig_args = (targ :: []); sig_res = (Tret targ); sig_cc = cc_default }
 | EF_inline_asm (_, sg, _) -> sg
 | EF_debug (_, _, targs) ->
-  { sig_args = targs; sig_res = None; sig_cc = cc_default }
+  { sig_args = targs; sig_res = Tvoid; sig_cc = cc_default }
 
 (** val ef_inline : external_function -> bool **)
 
