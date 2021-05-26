@@ -32,11 +32,6 @@ DIRS := lib common $(ARCHDIRS) backend cfrontend driver exportclight cparser
 
 COQINCLUDES := $(foreach d, $(DIRS), -R $(d) compcert.$(d))
 
-ifeq ($(LIBRARY_FLOCQ),local)
-DIRS += flocq/Core flocq/Prop flocq/Calc flocq/IEEE754
-COQINCLUDES += -R flocq Flocq
-endif
-
 ifeq ($(LIBRARY_MENHIRLIB),local)
 DIRS += MenhirLib
 COQINCLUDES += -R MenhirLib MenhirLib
@@ -76,21 +71,6 @@ EXPORT=export HOME=$(MYHOME); #
 
 VPATH=$(DIRS)
 GPATH=$(DIRS)
-
-# Flocq
-
-ifeq ($(LIBRARY_FLOCQ),local)
-FLOCQ=\
-  SpecFloatCompat.v \
-  Raux.v Zaux.v Defs.v Digits.v Float_prop.v FIX.v FLT.v FLX.v FTZ.v \
-  Generic_fmt.v Round_pred.v Round_NE.v Ulp.v Core.v \
-  Bracket.v Div.v Operations.v Round.v Sqrt.v \
-  Div_sqrt_error.v Mult_error.v Plus_error.v \
-  Relative.v Sterbenz.v Round_odd.v Double_rounding.v \
-  Binary.v Bits.v
-else
-FLOCQ=
-endif
 
 # General-purpose libraries (in lib/)
 
