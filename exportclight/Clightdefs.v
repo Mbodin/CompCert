@@ -6,10 +6,11 @@
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique.  All rights reserved.  This file is distributed       *)
-(*  under the terms of the GNU General Public License as published by  *)
-(*  the Free Software Foundation, either version 2 of the License, or  *)
-(*  (at your option) any later version.  This file is also distributed *)
-(*  under the terms of the INRIA Non-Commercial License Agreement.     *)
+(*  under the terms of the GNU Lesser General Public License as        *)
+(*  published by the Free Software Foundation, either version 2.1 of   *)
+(*  the License, or  (at your option) any later version.               *)
+(*  This file is also distributed under the terms of the               *)
+(*  INRIA Non-Commercial License Agreement.                            *)
 (*                                                                     *)
 (* *********************************************************************)
 
@@ -17,6 +18,8 @@
 
 From Coq Require Import Ascii String List ZArith.
 From compcert Require Import Integers Floats Maps Errors AST Ctypes Cop Clight.
+
+(** ** Short names for types *)
 
 Definition tvoid := Tvoid.
 Definition tschar := Tint I8 Signed noattr.
@@ -56,6 +59,8 @@ Definition talignas (n: N) (ty: type) :=
 Definition tvolatile_alignas (n: N) (ty: type) :=
   tattr {| attr_volatile := true; attr_alignas := Some n |} ty.
 
+(** ** Constructor for programs and compilation units *)
+
 Definition wf_composites (types: list composite_definition) : Prop :=
   match build_composite_env types with OK _ => True | Error _ => False end.
 
@@ -80,6 +85,8 @@ Definition mkprogram (types: list composite_definition)
      prog_types := types;
      prog_comp_env := ce;
      prog_comp_env_eq := EQ |}.
+
+(** ** Encoding character strings as positive numbers *)
 
 (** The following encoding of character strings as positive numbers
     must be kept consistent with the OCaml function [Camlcoq.pos_of_string]. *)
@@ -169,6 +176,120 @@ Fixpoint ident_of_string (s: string) : ident :=
   | String c s => append_char_pos c (ident_of_string s)
   end.
 
+(** The inverse conversion, from encoded strings to strings *)
+
+Section DECODE_BITS.
+
+Variable rec: positive -> string.
+
+Fixpoint decode_n_bits (n: nat) (l: list bool) (p: positive) : string :=
+  match n with
+  | O => 
+      match l with 
+      | b7 :: b6 :: b5 :: b4 :: b3 :: b2 :: b1 :: b0 :: _ =>
+          String (Ascii b7 b6 b5 b4 b3 b2 b1 b0) (rec p)
+      | _ => EmptyString
+      end
+  | S n =>
+      match p with
+      | xO q => decode_n_bits n (false :: l) q
+      | xI q => decode_n_bits n (true :: l) q
+      | xH => EmptyString
+      end
+  end.
+
+Definition decode_8_bits := Eval compute in (decode_n_bits 8%nat nil).
+
+End DECODE_BITS.
+
+Fixpoint string_of_ident (p: positive) : string :=
+  match p with
+  | xO (xO (xO (xO (xO (xO p))))) => String "0"%char (string_of_ident p)
+  | xI (xO (xO (xO (xO (xO p))))) => String "1"%char (string_of_ident p)
+  | xO (xI (xO (xO (xO (xO p))))) => String "2"%char (string_of_ident p)
+  | xI (xI (xO (xO (xO (xO p))))) => String "3"%char (string_of_ident p)
+  | xO (xO (xI (xO (xO (xO p))))) => String "4"%char (string_of_ident p)
+  | xI (xO (xI (xO (xO (xO p))))) => String "5"%char (string_of_ident p)
+  | xO (xI (xI (xO (xO (xO p))))) => String "6"%char (string_of_ident p)
+  | xI (xI (xI (xO (xO (xO p))))) => String "7"%char (string_of_ident p)
+  | xO (xO (xO (xI (xO (xO p))))) => String "8"%char (string_of_ident p)
+  | xI (xO (xO (xI (xO (xO p))))) => String "9"%char (string_of_ident p)
+  | xO (xI (xO (xI (xO (xO p))))) => String "a"%char (string_of_ident p)
+  | xI (xI (xO (xI (xO (xO p))))) => String "b"%char (string_of_ident p)
+  | xO (xO (xI (xI (xO (xO p))))) => String "c"%char (string_of_ident p)
+  | xI (xO (xI (xI (xO (xO p))))) => String "d"%char (string_of_ident p)
+  | xO (xI (xI (xI (xO (xO p))))) => String "e"%char (string_of_ident p)
+  | xI (xI (xI (xI (xO (xO p))))) => String "f"%char (string_of_ident p)
+  | xO (xO (xO (xO (xI (xO p))))) => String "g"%char (string_of_ident p)
+  | xI (xO (xO (xO (xI (xO p))))) => String "h"%char (string_of_ident p)
+  | xO (xI (xO (xO (xI (xO p))))) => String "i"%char (string_of_ident p)
+  | xI (xI (xO (xO (xI (xO p))))) => String "j"%char (string_of_ident p)
+  | xO (xO (xI (xO (xI (xO p))))) => String "k"%char (string_of_ident p)
+  | xI (xO (xI (xO (xI (xO p))))) => String "l"%char (string_of_ident p)
+  | xO (xI (xI (xO (xI (xO p))))) => String "m"%char (string_of_ident p)
+  | xI (xI (xI (xO (xI (xO p))))) => String "n"%char (string_of_ident p)
+  | xO (xO (xO (xI (xI (xO p))))) => String "o"%char (string_of_ident p)
+  | xI (xO (xO (xI (xI (xO p))))) => String "p"%char (string_of_ident p)
+  | xO (xI (xO (xI (xI (xO p))))) => String "q"%char (string_of_ident p)
+  | xI (xI (xO (xI (xI (xO p))))) => String "r"%char (string_of_ident p)
+  | xO (xO (xI (xI (xI (xO p))))) => String "s"%char (string_of_ident p)
+  | xI (xO (xI (xI (xI (xO p))))) => String "t"%char (string_of_ident p)
+  | xO (xI (xI (xI (xI (xO p))))) => String "u"%char (string_of_ident p)
+  | xI (xI (xI (xI (xI (xO p))))) => String "v"%char (string_of_ident p)
+  | xO (xO (xO (xO (xO (xI p))))) => String "w"%char (string_of_ident p)
+  | xI (xO (xO (xO (xO (xI p))))) => String "x"%char (string_of_ident p)
+  | xO (xI (xO (xO (xO (xI p))))) => String "y"%char (string_of_ident p)
+  | xI (xI (xO (xO (xO (xI p))))) => String "z"%char (string_of_ident p)
+  | xO (xO (xI (xO (xO (xI p))))) => String "A"%char (string_of_ident p)
+  | xI (xO (xI (xO (xO (xI p))))) => String "B"%char (string_of_ident p)
+  | xO (xI (xI (xO (xO (xI p))))) => String "C"%char (string_of_ident p)
+  | xI (xI (xI (xO (xO (xI p))))) => String "D"%char (string_of_ident p)
+  | xO (xO (xO (xI (xO (xI p))))) => String "E"%char (string_of_ident p)
+  | xI (xO (xO (xI (xO (xI p))))) => String "F"%char (string_of_ident p)
+  | xO (xI (xO (xI (xO (xI p))))) => String "G"%char (string_of_ident p)
+  | xI (xI (xO (xI (xO (xI p))))) => String "H"%char (string_of_ident p)
+  | xO (xO (xI (xI (xO (xI p))))) => String "I"%char (string_of_ident p)
+  | xI (xO (xI (xI (xO (xI p))))) => String "J"%char (string_of_ident p)
+  | xO (xI (xI (xI (xO (xI p))))) => String "K"%char (string_of_ident p)
+  | xI (xI (xI (xI (xO (xI p))))) => String "L"%char (string_of_ident p)
+  | xO (xO (xO (xO (xI (xI p))))) => String "M"%char (string_of_ident p)
+  | xI (xO (xO (xO (xI (xI p))))) => String "N"%char (string_of_ident p)
+  | xO (xI (xO (xO (xI (xI p))))) => String "O"%char (string_of_ident p)
+  | xI (xI (xO (xO (xI (xI p))))) => String "P"%char (string_of_ident p)
+  | xO (xO (xI (xO (xI (xI p))))) => String "Q"%char (string_of_ident p)
+  | xI (xO (xI (xO (xI (xI p))))) => String "R"%char (string_of_ident p)
+  | xO (xI (xI (xO (xI (xI p))))) => String "S"%char (string_of_ident p)
+  | xI (xI (xI (xO (xI (xI p))))) => String "T"%char (string_of_ident p)
+  | xO (xO (xO (xI (xI (xI p))))) => String "U"%char (string_of_ident p)
+  | xI (xO (xO (xI (xI (xI p))))) => String "V"%char (string_of_ident p)
+  | xO (xI (xO (xI (xI (xI p))))) => String "W"%char (string_of_ident p)
+  | xI (xI (xO (xI (xI (xI p))))) => String "X"%char (string_of_ident p)
+  | xO (xO (xI (xI (xI (xI p))))) => String "Y"%char (string_of_ident p)
+  | xI (xO (xI (xI (xI (xI p))))) => String "Z"%char (string_of_ident p)
+  | xO (xI (xI (xI (xI (xI p))))) => String "_"%char (string_of_ident p)
+  | xI (xI (xI (xI (xI (xI p))))) => decode_8_bits string_of_ident p
+  | _ => EmptyString
+  end.
+
+Lemma string_of_ident_of_string:
+  forall s, string_of_ident (ident_of_string s) = s.
+Proof.
+  induction s as [ | c s]; simpl.
+- auto.
+- rewrite <- IHs at 2. destruct c as [[] [] [] [] [] [] [] []]; reflexivity.
+Qed.
+
+Corollary ident_of_string_injective:
+  forall s1 s2, ident_of_string s1 = ident_of_string s2 -> s1 = s2.
+Proof.
+  intros. rewrite <- (string_of_ident_of_string s1), <- (string_of_ident_of_string s2).
+  congruence.
+Qed.
+
+(** ** Notations *)
+
+Module ClightNotations.
+
 (** A convenient notation [$ "ident"] to force evaluation of
     [ident_of_string "ident"] *)
 
@@ -178,4 +299,6 @@ Ltac ident_of_string s :=
   exact y.
 
 Notation "$ s" := (ltac:(ident_of_string s))
-                  (at level 1, only parsing) : string_scope.
+                  (at level 1, only parsing) : clight_scope.
+
+End ClightNotations.

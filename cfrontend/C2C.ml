@@ -6,10 +6,11 @@
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique.  All rights reserved.  This file is distributed       *)
-(*  under the terms of the GNU General Public License as published by  *)
-(*  the Free Software Foundation, either version 2 of the License, or  *)
-(*  (at your option) any later version.  This file is also distributed *)
-(*  under the terms of the INRIA Non-Commercial License Agreement.     *)
+(*  under the terms of the GNU Lesser General Public License as        *)
+(*  published by the Free Software Foundation, either version 2.1 of   *)
+(*  the License, or  (at your option) any later version.               *)
+(*  This file is also distributed under the terms of the               *)
+(*  INRIA Non-Commercial License Agreement.                            *)
 (*                                                                     *)
 (* *********************************************************************)
 
@@ -180,11 +181,27 @@ let builtins_generic = {
       (TInt(IUInt, []), [TInt(IUInt, [])], false);
     "__builtin_bswap16",
       (TInt(IUShort, []), [TInt(IUShort, [])], false);
+    "__builtin_clz",
+      (TInt(IInt, []), [TInt(IUInt, [])], false);
+    "__builtin_clzl",
+      (TInt(IInt, []), [TInt(IULong, [])], false);
+    "__builtin_clzll",
+      (TInt(IInt, []), [TInt(IULongLong, [])], false);
+    "__builtin_ctz",
+      (TInt(IInt, []), [TInt(IUInt, [])], false);
+    "__builtin_ctzl",
+      (TInt(IInt, []), [TInt(IULong, [])], false);
+    "__builtin_ctzll",
+      (TInt(IInt, []), [TInt(IULongLong, [])], false);
     (* Floating-point absolute value *)
     "__builtin_fabs",
     (TFloat(FDouble, []), [TFloat(FDouble, [])], false);
+    "__builtin_fabsf",
+    (TFloat(FFloat, []), [TFloat(FFloat, [])], false);
     (* Float arithmetic *)
     "__builtin_fsqrt",
+    (TFloat(FDouble, []), [TFloat(FDouble, [])], false);
+    "__builtin_sqrt",
     (TFloat(FDouble, []), [TFloat(FDouble, [])], false);
     (* Block copy *)
     "__builtin_memcpy_aligned",
@@ -252,6 +269,11 @@ let builtins_generic = {
         (TPtr(TVoid [], []),
           [TPtr(TVoid [], []); TInt(IULong, [])],
           false);
+  (* Optimization hints *)
+    "__builtin_unreachable",
+        (TVoid [], [], false);
+    "__builtin_expect",
+        (TInt(ILong, []), [TInt(ILong, []); TInt(ILong, [])], false);
   (* Helper functions for int64 arithmetic *)
     "__compcert_i64_dtos",
         (TInt(ILongLong, []),
@@ -536,10 +558,16 @@ let convertAttr a =
       let n = Cutil.alignas_attribute a in
       if n > 0 then Some (N.of_int (log2 n)) else None }
 
-let convertCallconv va unproto attr =
+let convertCallconv _tres targs va attr =
+  let vararg =
+    match targs with
+    | None -> None
+    | Some tl -> if va then Some (Z.of_uint (List.length tl)) else None in
   let sr =
     Cutil.find_custom_attributes ["structreturn"; "__structreturn"] attr in
-  {  AST.cc_vararg = va; cc_unproto = unproto; cc_structret = sr <> [] }
+  {  AST.cc_vararg = vararg;
+     AST.cc_unproto = (targs = None);
+     AST.cc_structret = (sr <> []) }
 
 (** Types *)
 
@@ -607,7 +635,7 @@ let rec convertTyp env t =
                 | Some tl -> convertParams env tl
                 end,
                 convertTyp env tres,
-                convertCallconv va (targs = None) a)
+                convertCallconv tres targs va a)
   | C.TNamed _ ->
       convertTyp env (Cutil.unroll env t)
   | C.TStruct(id, a) ->
@@ -967,13 +995,16 @@ let rec convertExpr env e =
       ewrap (Ctyping.eselection (convertExpr env arg1)
                                 (convertExpr env arg2) (convertExpr env arg3))
 
+  | C.ECall({edesc = C.EVar {name = "__builtin_expect"}}, [arg1; arg2]) ->
+      convertExpr env arg1
+
   | C.ECall({edesc = C.EVar {name = "printf"}}, args)
     when !Clflags.option_interp ->
       let targs = convertTypArgs env [] args
       and tres = convertTyp env e.etyp in
       let sg =
         signature_of_type targs tres
-           { AST.cc_vararg = true; cc_unproto = false; cc_structret = false} in
+           { AST.cc_vararg = Some (coqint_of_camlint 1l); cc_unproto = false; cc_structret = false} in
       Ebuiltin( AST.EF_external(coqstring_of_camlstring "printf", sg),
                targs, convertExprList env args, tres)
 
@@ -1240,7 +1271,8 @@ let convertFundef loc env fd =
       a_loc = loc };
   (id',  AST.Gfun(Ctypes.Internal
           {fn_return = ret;
-           fn_callconv = convertCallconv fd.fd_vararg false fd.fd_attrib;
+           fn_callconv = convertCallconv fd.fd_ret (Some fd.fd_params)
+                                         fd.fd_vararg fd.fd_attrib;
            fn_params = params;
            fn_vars = vars;
            fn_body = body'}))
@@ -1310,8 +1342,13 @@ let convertGlobvar loc env (sto, id, ty, optinit) =
         if sto = C.Storage_extern then [] else [AST.Init_space sz]
     | Some i ->
         convertInitializer env ty i in
+  let initialized =
+    if optinit = None then Sections.Uninit else
+    if List.exists (function AST.Init_addrof _ -> true | _ -> false) init'
+    then Sections.Init_reloc
+    else Sections.Init in
   let (section, access) =
-    Sections.for_variable env loc id' ty (optinit <> None) in
+    Sections.for_variable env loc id' ty initialized in
   if Z.gt sz (Z.of_uint64 0xFFFF_FFFFL) then
     error "'%s' is too big (%s bytes)"
                    id.name (Z.to_string sz);
@@ -1479,7 +1516,7 @@ let convertProgram p =
         let p' =
           { prog_defs = gl2;
             prog_public = public_globals gl2;
-            prog_main = intern_string "main";
+            prog_main = intern_string !Clflags.main_function_name;
             prog_types = typs;
             prog_comp_env = ce } in
         Diagnostics.check_errors ();

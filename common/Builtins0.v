@@ -6,10 +6,11 @@
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique.  All rights reserved.  This file is distributed       *)
-(*  under the terms of the GNU General Public License as published by  *)
-(*  the Free Software Foundation, either version 2 of the License, or  *)
-(*  (at your option) any later version.  This file is also distributed *)
-(*  under the terms of the INRIA Non-Commercial License Agreement.     *)
+(*  under the terms of the GNU Lesser General Public License as        *)
+(*  published by the Free Software Foundation, either version 2.1 of   *)
+(*  the License, or  (at your option) any later version.               *)
+(*  This file is also distributed under the terms of the               *)
+(*  INRIA Non-Commercial License Agreement.                            *)
 (*                                                                     *)
 (* *********************************************************************)
 
@@ -332,6 +333,7 @@ End LOOKUP.
 Inductive standard_builtin : Type :=
   | BI_select (t: typ)
   | BI_fabs
+  | BI_fabsf
   | BI_fsqrt
   | BI_negl
   | BI_addl
@@ -340,6 +342,7 @@ Inductive standard_builtin : Type :=
   | BI_i16_bswap
   | BI_i32_bswap
   | BI_i64_bswap
+  | BI_unreachable
   | BI_i64_umulh
   | BI_i64_smulh
   | BI_i64_sdiv
@@ -364,7 +367,9 @@ Definition standard_builtin_table : list (string * standard_builtin) :=
  :: ("__builtin_sel", BI_select Tfloat)
  :: ("__builtin_sel", BI_select Tsingle)
  :: ("__builtin_fabs", BI_fabs)
+ :: ("__builtin_fabsf", BI_fabsf)
  :: ("__builtin_fsqrt", BI_fsqrt)
+ :: ("__builtin_sqrt", BI_fsqrt)
  :: ("__builtin_negl", BI_negl)
  :: ("__builtin_addl", BI_addl)
  :: ("__builtin_subl", BI_subl)
@@ -373,6 +378,7 @@ Definition standard_builtin_table : list (string * standard_builtin) :=
  :: ("__builtin_bswap", BI_i32_bswap)
  :: ("__builtin_bswap32", BI_i32_bswap)
  :: ("__builtin_bswap64", BI_i64_bswap)
+ :: ("__builtin_unreachable", BI_unreachable)
  :: ("__compcert_i64_umulh", BI_i64_umulh)
  :: ("__compcert_i64_smulh", BI_i64_smulh)
  :: ("__compcert_i64_sdiv", BI_i64_sdiv)
@@ -396,6 +402,8 @@ Definition standard_builtin_sig (b: standard_builtin) : signature :=
       mksignature (Tint :: t :: t :: nil) t cc_default
   | BI_fabs | BI_fsqrt =>
       mksignature (Tfloat :: nil) Tfloat cc_default
+  | BI_fabsf =>
+      mksignature (Tsingle :: nil) Tsingle cc_default
   | BI_negl =>
       mksignature (Tlong :: nil) Tlong cc_default
   | BI_addl | BI_subl | BI_i64_umulh| BI_i64_smulh 
@@ -409,6 +417,8 @@ Definition standard_builtin_sig (b: standard_builtin) : signature :=
       mksignature (Tlong :: nil) Tlong cc_default
   | BI_i16_bswap =>
       mksignature (Tint :: nil) Tint cc_default
+  | BI_unreachable =>
+      mksignature nil Tvoid cc_default
   | BI_i64_shl  | BI_i64_shr | BI_i64_sar =>
       mksignature (Tlong :: Tint :: nil) Tlong cc_default
   | BI_i64_dtos | BI_i64_dtou =>
@@ -428,6 +438,7 @@ Program Definition standard_builtin_sem (b: standard_builtin) : builtin_sem (sig
           | _ => None
         end) _ _
   | BI_fabs => mkbuiltin_n1t Tfloat Tfloat Float.abs
+  | BI_fabsf => mkbuiltin_n1t Tsingle Tsingle Float32.abs
   | BI_fsqrt => mkbuiltin_n1t Tfloat Tfloat Float.sqrt
   | BI_negl => mkbuiltin_n1t Tlong Tlong Int64.neg
   | BI_addl => mkbuiltin_v2t Tlong Val.addl _ _ 
@@ -442,6 +453,7 @@ Program Definition standard_builtin_sem (b: standard_builtin) : builtin_sem (sig
   | BI_i64_bswap =>
     mkbuiltin_n1t Tlong Tlong
                   (fun n => Int64.repr (decode_int (List.rev (encode_int 8%nat (Int64.unsigned n)))))
+  | BI_unreachable => mkbuiltin Tvoid (fun vargs => None) _ _
   | BI_i64_umulh => mkbuiltin_n2t Tlong Tlong Tlong Int64.mulhu
   | BI_i64_smulh => mkbuiltin_n2t Tlong Tlong Tlong Int64.mulhs
   | BI_i64_sdiv => mkbuiltin_v2p Tlong Val.divls _ _

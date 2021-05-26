@@ -177,34 +177,56 @@ let expand_builtin_memcpy sz al args =
 let expand_volatile_access
        (mk1: ireg -> constant -> unit)
        (mk2: ireg -> ireg -> unit)
+       ?(ofs_unaligned = true)
        addr temp =
   match addr with
   | BA(IR r) ->
       mk1 r (Cint _0)
   | BA_addrstack ofs ->
-      if offset_in_range ofs then
-        mk1 GPR1 (Cint ofs)
+      if ofs_unaligned || Int.eq (Int.mods ofs _4) _0 then
+        if offset_in_range ofs then
+          mk1 GPR1 (Cint ofs)
+        else begin
+          emit (Paddis(temp, GPR1, Cint (Asmgen.high_s ofs)));
+          mk1 temp (Cint (Asmgen.low_s ofs))
+        end
       else begin
-        emit (Paddis(temp, GPR1, Cint (Asmgen.high_s ofs)));
-        mk1 temp (Cint (Asmgen.low_s ofs))
+        emit (Paddis (temp, GPR1, Cint (Asmgen.high_s ofs)));
+        emit (Paddi (temp, temp, Cint (Asmgen.low_s ofs)));
+        mk1 temp (Cint _0)
       end
   | BA_addrglobal(id, ofs) ->
       if symbol_is_small_data id ofs then
-        mk1 GPR0 (Csymbol_sda(id, ofs))
+        if ofs_unaligned || Asmgen.symbol_ofs_word_aligned id ofs then
+          mk1 GPR0 (Csymbol_sda(id, ofs))
+        else begin
+          emit (Paddi (temp, GPR0, (Csymbol_sda (id,ofs))));
+          mk1 temp (Cint _0)
+        end
       else if symbol_is_rel_data id ofs then begin
         emit (Paddis(temp, GPR0, Csymbol_rel_high(id, ofs)));
         emit (Paddi(temp, temp, Csymbol_rel_low(id, ofs)));
         mk1 temp (Cint _0)
-      end else begin
+      end else if ofs_unaligned || Asmgen.symbol_ofs_word_aligned id ofs then begin
         emit (Paddis(temp, GPR0, Csymbol_high(id, ofs)));
         mk1 temp (Csymbol_low(id, ofs))
+      end else begin
+        emit (Paddis (temp, GPR0, (Csymbol_high (id, ofs))));
+        emit (Paddi (temp, temp, (Csymbol_low (id, ofs))));
+        mk1 temp (Cint _0)
       end
   | BA_addptr(BA(IR r), BA_int n) ->
-      if offset_in_range n then
-        mk1 r (Cint n)
+      if ofs_unaligned || Int.eq (Int.mods n _4) _0 then
+        if offset_in_range n then
+          mk1 r (Cint n)
+        else begin
+          emit (Paddis(temp, r, Cint (Asmgen.high_s n)));
+          mk1 temp (Cint (Asmgen.low_s n))
+        end
       else begin
-        emit (Paddis(temp, r, Cint (Asmgen.high_s n)));
-        mk1 temp (Cint (Asmgen.low_s n))
+        emit (Paddis (temp, r, Cint (Asmgen.high_s n)));
+        emit (Paddi (temp, temp, Cint (Asmgen.low_s n)));
+        mk1 temp (Cint _0)
       end
   | BA_addptr(BA_addrglobal(id, ofs), BA(IR r)) ->
       if symbol_is_small_data id ofs then begin
@@ -215,9 +237,14 @@ let expand_volatile_access
         emit (Paddis(temp, GPR0, Csymbol_rel_high(id, ofs)));
         emit (Paddi(temp, temp, Csymbol_rel_low(id, ofs)));
         mk2 temp GPR0
-      end else begin
+      end else if ofs_unaligned || Asmgen.symbol_ofs_word_aligned id ofs then begin
         emit (Paddis(temp, r, Csymbol_high(id, ofs)));
         mk1 temp (Csymbol_low(id, ofs))
+      end else begin
+        emit (Pmr (GPR0, r));
+        emit (Paddis(temp, GPR0, Csymbol_high(id, ofs)));
+        emit (Paddi(temp, temp, Csymbol_low(id, ofs)));
+        mk2 temp GPR0
       end
   | BA_addptr(BA(IR r1), BA(IR r2)) ->
       mk2 r1 r2
@@ -283,6 +310,7 @@ let expand_builtin_vload_1 chunk addr res =
       expand_volatile_access
         (fun r c -> emit (Pld(res, c, r)))
         (fun r1 r2 -> emit (Pldx(res, r1, r2)))
+        ~ofs_unaligned:false
         addr GPR11
   | Mint64, BR_splitlong(BR(IR hi), BR(IR lo)) ->
       expand_volatile_access
@@ -346,6 +374,7 @@ let expand_builtin_vstore_1 chunk addr src =
       expand_volatile_access
         (fun r c -> emit (Pstd(src, c, r)))
         (fun r1 r2 -> emit (Pstdx(src, r1, r2)))
+        ~ofs_unaligned:false
         addr temp
   | Mint64, BA_splitlong(BA(IR hi), BA(IR lo)) ->
       expand_volatile_access
@@ -388,8 +417,9 @@ let rec next_arg_locations ir fr ofs = function
       then next_arg_locations ir (fr + 1) ofs l
       else next_arg_locations ir fr (align ofs 8 + 8) l
   | Tlong :: l ->
-      if ir < 7
-      then next_arg_locations (align ir 2 + 2) fr ofs l
+      let ir = align ir 2 in
+      if ir < 8
+      then next_arg_locations (ir + 2) fr ofs l
       else next_arg_locations ir fr (align ofs 8 + 8) l
 
 let expand_builtin_va_start r =
@@ -594,9 +624,7 @@ let expand_builtin_inline name args res =
       emit (Pfnmadd(res, a1, a2, a3))
   | "__builtin_fnmsub", [BA(FR a1); BA(FR a2); BA(FR a3)], BR(FR res) ->
       emit (Pfnmsub(res, a1, a2, a3))
-  | "__builtin_fabs", [BA(FR a1)], BR(FR res) ->
-      emit (Pfabs(res, a1))
-  | "__builtin_fsqrt", [BA(FR a1)], BR(FR res) ->
+  | ("__builtin_fsqrt" | "__builtin_sqrt"), [BA(FR a1)], BR(FR res) ->
       emit (Pfsqrt(res, a1))
   | "__builtin_frsqrte", [BA(FR a1)], BR(FR res) ->
       emit (Pfrsqrte(res, a1))
@@ -765,8 +793,13 @@ let expand_builtin_inline name args res =
   (* no operation *)
   | "__builtin_nop", [], _ ->
       emit (Pori (GPR0, GPR0, Cint _0))
+  (* Optimization hint *)
+  | "__builtin_unreachable", [], _ ->
+     ()
   (* atomic operations *)
   | "__builtin_atomic_exchange", [BA (IR a1); BA (IR a2); BA (IR a3)],_ ->
+      (* Register constraints imposed by Machregs.v *)
+      assert(a1 = GPR3 && a2 = GPR4 && a3 = GPR5);
       emit (Plwz (GPR10,Cint _0,a2));
       emit (Psync);
       let lbl = new_label() in
@@ -786,6 +819,8 @@ let expand_builtin_inline name args res =
       emit (Pisync);
       emit (Pstw (GPR0,Cint _0, a2))
   | "__builtin_sync_fetch_and_add", [BA (IR a1); BA(IR a2)], BR (IR res) ->
+      (* Register constraints imposed by Machregs.v *)
+      assert (a1 = GPR4 && a2 = GPR5 && res = GPR3);
       let lbl = new_label() in
       emit (Psync);
       emit (Plabel lbl);
@@ -795,6 +830,8 @@ let expand_builtin_inline name args res =
       emit (Pbf (CRbit_2, lbl));
       emit (Pisync);
   | "__builtin_atomic_compare_exchange", [BA (IR dst); BA(IR exp); BA (IR des)],  BR (IR res) ->
+      (* Register constraints imposed by Machregs.v *)
+      assert (dst = GPR4 && exp = GPR5 && des = GPR6 && res = GPR3);
       let lbls = new_label ()
       and lblneq = new_label ()
       and lblsucc = new_label () in
@@ -826,7 +863,7 @@ let expand_builtin_inline name args res =
    function is unprototyped. *)
 
 let set_cr6 sg =
-  if sg.sig_cc.cc_vararg || sg.sig_cc.cc_unproto then begin
+  if (sg.sig_cc.cc_vararg <> None) || sg.sig_cc.cc_unproto then begin
     if List.exists (function Tfloat | Tsingle -> true | _ -> false) sg.sig_args
     then emit (Pcreqv(CRbit_6, CRbit_6, CRbit_6))
     else emit (Pcrxor(CRbit_6, CRbit_6, CRbit_6))
@@ -871,15 +908,6 @@ let expand_instruction instr =
         emit (Paddi(GPR1, GPR1, Cint(coqint_of_camlint sz)))
       else
         emit (Plwz(GPR1, Cint ofs, GPR1))
-  | Pfcfi(r1, r2) ->
-      assert (Archi.ppc64);
-      emit (Pextsw(GPR0, r2));
-      emit (Pstdu(GPR0, Cint _m8, GPR1));
-      emit (Pcfi_adjust _8);
-      emit (Plfd(r1, Cint _0, GPR1));
-      emit (Pfcfid(r1, r1));
-      emit (Paddi(GPR1, GPR1, Cint _8));
-      emit (Pcfi_adjust _m8)
   | Pfcfl(r1, r2) ->
       assert (Archi.ppc64);
       emit (Pstdu(r2, Cint _m8, GPR1));
@@ -888,25 +916,8 @@ let expand_instruction instr =
       emit (Pfcfid(r1, r1));
       emit (Paddi(GPR1, GPR1, Cint _8));
       emit (Pcfi_adjust _m8)
-  | Pfcfiu(r1, r2) ->
-      assert (Archi.ppc64);
-      emit (Prldicl(GPR0, r2, _0, _32));
-      emit (Pstdu(GPR0, Cint _m8, GPR1));
-      emit (Pcfi_adjust _8);
-      emit (Plfd(r1, Cint _0, GPR1));
-      emit (Pfcfid(r1, r1));
-      emit (Paddi(GPR1, GPR1, Cint _8));
-      emit (Pcfi_adjust _m8)
   | Pfcti(r1, r2) ->
       emit (Pfctiwz(FPR13, r2));
-      emit (Pstfdu(FPR13, Cint _m8, GPR1));
-      emit (Pcfi_adjust _8);
-      emit (Plwz(r1, Cint _4, GPR1));
-      emit (Paddi(GPR1, GPR1, Cint _8));
-      emit (Pcfi_adjust _m8)
-  | Pfctiu(r1, r2) ->
-      assert (Archi.ppc64);
-      emit (Pfctidz(FPR13, r2));
       emit (Pstfdu(FPR13, Cint _m8, GPR1));
       emit (Pcfi_adjust _8);
       emit (Plwz(r1, Cint _4, GPR1));

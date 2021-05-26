@@ -6,10 +6,11 @@
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique.  All rights reserved.  This file is distributed       *)
-(*  under the terms of the GNU General Public License as published by  *)
-(*  the Free Software Foundation, either version 2 of the License, or  *)
-(*  (at your option) any later version.  This file is also distributed *)
-(*  under the terms of the INRIA Non-Commercial License Agreement.     *)
+(*  under the terms of the GNU Lesser General Public License as        *)
+(*  published by the Free Software Foundation, either version 2.1 of   *)
+(*  the License, or  (at your option) any later version.               *)
+(*  This file is also distributed under the terms of the               *)
+(*  INRIA Non-Commercial License Agreement.                            *)
 (*                                                                     *)
 (* *********************************************************************)
 
@@ -170,7 +171,7 @@ Definition floatsize_eq: forall (x y: floatsize), {x=y} + {x<>y}.
 Proof. decide equality. Defined.
 
 Definition callconv_combine (cc1 cc2: calling_convention) : res calling_convention :=
-  if bool_eq cc1.(cc_vararg) cc2.(cc_vararg) then
+  if option_eq Z.eq_dec cc1.(cc_vararg) cc2.(cc_vararg) then
     OK {| cc_vararg := cc1.(cc_vararg);
           cc_unproto := cc1.(cc_unproto) && cc2.(cc_unproto);
           cc_structret := cc1.(cc_structret) |}
@@ -537,9 +538,9 @@ Inductive wt_program : program -> Prop :=
          wt_fundef p.(prog_comp_env) e fd) ->
       wt_program p.
 
-Hint Constructors wt_val wt_rvalue wt_lvalue wt_stmt wt_lblstmts: ty.
-Hint Extern 1 (wt_int _ _ _) => exact I: ty.
-Hint Extern 1 (wt_int _ _ _) => reflexivity: ty.
+Global Hint Constructors wt_val wt_rvalue wt_lvalue wt_stmt wt_lblstmts: ty.
+Global Hint Extern 1 (wt_int _ _ _) => exact I: ty.
+Global Hint Extern 1 (wt_int _ _ _) => reflexivity: ty.
 
 Ltac DestructCases :=
   match goal with
@@ -955,7 +956,7 @@ Proof.
   destruct (classify_bool t); congruence.
 Qed.
 
-Hint Resolve check_cast_sound check_bool_sound: ty.
+Global Hint Resolve check_cast_sound check_bool_sound: ty.
 
 Lemma check_arguments_sound:
   forall el tl x, check_arguments el tl = OK x -> wt_arguments el tl.
@@ -1428,8 +1429,8 @@ Lemma pres_cast_int_int:
   forall sz sg n, wt_int (cast_int_int sz sg n) sz sg.
 Proof.
   intros. unfold cast_int_int. destruct sz; simpl.
-- destruct sg. apply Int.sign_ext_idem; omega. apply Int.zero_ext_idem; omega.
-- destruct sg. apply Int.sign_ext_idem; omega. apply Int.zero_ext_idem; omega.
+- destruct sg. apply Int.sign_ext_idem; lia. apply Int.zero_ext_idem; lia.
+- destruct sg. apply Int.sign_ext_idem; lia. apply Int.zero_ext_idem; lia.
 - auto.
 - destruct (Int.eq n Int.zero); auto.
 Qed.
@@ -1616,12 +1617,12 @@ Proof.
   unfold access_mode, Val.load_result. remember Archi.ptr64 as ptr64. 
   intros until v; intros AC. destruct ty; simpl in AC; try discriminate AC.
 - destruct i; [destruct s|destruct s|idtac|idtac]; inv AC; simpl.
-  destruct v; auto with ty. constructor; red. apply Int.sign_ext_idem; omega.
-  destruct v; auto with ty. constructor; red. apply Int.zero_ext_idem; omega.
-  destruct v; auto with ty. constructor; red. apply Int.sign_ext_idem; omega.
-  destruct v; auto with ty. constructor; red. apply Int.zero_ext_idem; omega.
+  destruct v; auto with ty. constructor; red. apply Int.sign_ext_idem; lia.
+  destruct v; auto with ty. constructor; red. apply Int.zero_ext_idem; lia.
+  destruct v; auto with ty. constructor; red. apply Int.sign_ext_idem; lia.
+  destruct v; auto with ty. constructor; red. apply Int.zero_ext_idem; lia.
   destruct Archi.ptr64 eqn:SF; destruct v; auto with ty.
-  destruct v; auto with ty. constructor; red. apply Int.zero_ext_idem; omega.
+  destruct v; auto with ty. constructor; red. apply Int.zero_ext_idem; lia.
 - inv AC. destruct Archi.ptr64 eqn:SF; destruct v; auto with ty.
 - destruct f; inv AC; destruct v; auto with ty.
 - inv AC. unfold Mptr. destruct Archi.ptr64 eqn:SF; destruct v; auto with ty.
@@ -1637,16 +1638,16 @@ Proof.
   destruct ty; simpl in ACC; try discriminate. 
 - destruct i; [destruct s|destruct s|idtac|idtac]; inv ACC; unfold decode_val.
   destruct (proj_bytes vl); auto with ty.
-  constructor; red. apply Int.sign_ext_idem; omega.
+  constructor; red. apply Int.sign_ext_idem; lia.
   destruct (proj_bytes vl); auto with ty.
-  constructor; red. apply Int.zero_ext_idem; omega.
+  constructor; red. apply Int.zero_ext_idem; lia.
   destruct (proj_bytes vl); auto with ty.
-  constructor; red. apply Int.sign_ext_idem; omega.
+  constructor; red. apply Int.sign_ext_idem; lia.
   destruct (proj_bytes vl); auto with ty.
-  constructor; red. apply Int.zero_ext_idem; omega.
+  constructor; red. apply Int.zero_ext_idem; lia.
   destruct (proj_bytes vl). auto with ty. destruct Archi.ptr64 eqn:SF; auto with ty. 
   destruct (proj_bytes vl); auto with ty.
-  constructor; red. apply Int.zero_ext_idem; omega.
+  constructor; red. apply Int.zero_ext_idem; lia.
 - inv ACC. unfold decode_val. destruct (proj_bytes vl). auto with ty.
   destruct Archi.ptr64 eqn:SF; auto with ty. 
 - destruct f; inv ACC; unfold decode_val; destruct (proj_bytes vl); auto with ty.

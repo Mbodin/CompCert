@@ -27,8 +27,8 @@
     "extract": "./compileUtils/extract.sh"
 	},
 	"dependencies": {
-		"ocaml": ">=4.8.1000",
-		"@opam/coq": ">=8.8.0 <=8.11.1",
+		"ocaml": ">=4.05.0 <5",
+		"@opam/coq": ">=8.9.0 <=8.13.2",
 		"@opam/menhir": ">=20190626 <20200123",
 		"@opam/depgraph": "*",
 		"@opam/dune": ">=2.0",
@@ -38,7 +38,7 @@
     "@opam/merlin": "*",
     "@opam/utop": "*",
     "@opam/odoc": "*",
-    "ocaml": "4.10.0", 
+    "ocaml": "4.10.0",
     "@opam/coq": "8.11.1"
 	},
 	"resolutions": {

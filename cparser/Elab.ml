@@ -6,10 +6,11 @@
 (*                                                                     *)
 (*  Copyright Institut National de Recherche en Informatique et en     *)
 (*  Automatique.  All rights reserved.  This file is distributed       *)
-(*  under the terms of the GNU General Public License as published by  *)
-(*  the Free Software Foundation, either version 2 of the License, or  *)
-(*  (at your option) any later version.  This file is also distributed *)
-(*  under the terms of the INRIA Non-Commercial License Agreement.     *)
+(*  under the terms of the GNU Lesser General Public License as        *)
+(*  published by the Free Software Foundation, either version 2.1 of   *)
+(*  the License, or  (at your option) any later version.               *)
+(*  This file is also distributed under the terms of the               *)
+(*  INRIA Non-Commercial License Agreement.                            *)
 (*                                                                     *)
 (* *********************************************************************)
 
@@ -329,10 +330,7 @@ let integer_representable v ik =
     v >= 0L && v < Int64.shift_left 1L (bitsize - 1)
 
 let elab_int_constant loc s0 =
-  let s = String.map (fun d -> match d with
-  | '0'..'9' | 'A'..'F' | 'L' | 'U' | 'X' -> d
-  | 'a'..'f' | 'l' | 'u' | 'x' -> Char.chr (Char.code d - 32)
-  | _ -> error loc "bad digit '%c' in integer literal '%s'" d s0; d) s0 in
+  let s = String.uppercase_ascii s0 in
   (* Determine possible types and chop type suffix *)
   let (s, dec_kinds, hex_kinds) =
     if has_suffix s "ULL" || has_suffix s "LLU" then
@@ -461,6 +459,23 @@ let elab_simple_string loc wide chars =
   match elab_string_literal loc wide chars with
   | CStr s -> s
   | _ -> error loc "cannot use wide string literal in 'asm'"; ""
+
+(** Elaboration and checking of static assertions *)
+
+let elab_static_assert env exp loc_exp msg loc_msg loc =
+  let (exp, env) = !elab_expr_f loc_exp env exp in
+  match Ceval.integer_expr env exp  with
+  | None ->
+      error loc_exp "expression in static assertion is not an integer constant"
+  | Some n ->
+      if n = 0L then begin
+        match elab_constant loc_msg msg with
+          | CStr s ->
+              error loc "static assertion failed: \"%s\"" s
+          | _ ->
+              (* This can happen with a wide string literal *)
+              error loc "static assertion failed (cannot display associated message)"
+      end
 
 
 (** * Elaboration of type expressions, type specifiers, name declarations *)
@@ -957,7 +972,9 @@ and elab_name_group loc env  (spec, namelist) =
 
 (* Elaboration of a field group *)
 
-and elab_field_group env (Field_group (spec, fieldlist, loc)) =
+and elab_field_group env = function
+
+| Field_group (spec, fieldlist, loc) ->
 
   let fieldlist = List.map
     (function (None, x) -> (Name ("", JUSTBASE, [], loc), x)
@@ -969,6 +986,7 @@ and elab_field_group env (Field_group (spec, fieldlist, loc)) =
     elab_name_group loc env  (spec, List.map fst fieldlist) in
 
   if sto <> Storage_default then
+    (* This should actually never be triggered, catched by pre-parser *)
     error loc "non-default storage in struct or union";
   if fieldlist = [] then
       (* This should actually never be triggered, empty structs are captured earlier *)
@@ -984,7 +1002,7 @@ and elab_field_group env (Field_group (spec, fieldlist, loc)) =
             | TInt(ik, _) -> ik
             | TEnum(_, _) -> enum_ikind
             | _ -> ILongLong (* trigger next error message *) in
-          if integer_rank ik > integer_rank IInt then begin
+          if sizeof_ikind ik > sizeof_ikind IInt then begin
             error loc
               "the type of bit-field '%a' must be an integer type no bigger than 'int'" pp_field id;
             None,env
@@ -1022,6 +1040,10 @@ and elab_field_group env (Field_group (spec, fieldlist, loc)) =
   in
   (mmap2 elab_bitfield env' fieldlist names)
 
+| Field_group_static_assert(exp, loc_exp, msg, loc_msg, loc) ->
+    elab_static_assert env exp loc_exp msg loc_msg loc;
+    ([], env)
+  
 (* Elaboration of a struct or union. C99 section 6.7.2.1 *)
 
 and elab_struct_or_union_info kind loc env members attrs =
@@ -1689,11 +1711,12 @@ let elab_expr ctx loc env a =
   let check_ptr_arith env ty s =
     match unroll env ty with
     | TVoid _ ->
-        error "illegal arithmetic on a pointer to void in binary '%c'" s
+        error "illegal arithmetic on a pointer to void in %s" s
     | TFun _ ->
-        error "illegal arithmetic on a pointer to the function type %a in binary '%c'" (print_typ env) ty s
-    | _ -> if incomplete_type env ty then
-        error "arithmetic on a pointer to an incomplete type %a in binary '%c'" (print_typ env) ty s
+        error "illegal arithmetic on a pointer to the function type %a in %s" (print_typ env) ty s
+    | _ ->
+        if incomplete_type env ty then
+          error "arithmetic on a pointer to an incomplete type %a in %s" (print_typ env) ty s
   in
 
   let check_static_var env id sto ty =
@@ -1788,14 +1811,18 @@ let elab_expr ctx loc env a =
       (preprocessing) --> __builtin_va_arg(ap, ty)
       (elaboration)   --> __builtin_va_arg(ap, sizeof(ty))
 *)
-  | CALL((VARIABLE "__builtin_va_start" as a1), [a2; a3]) ->
+  | CALL((VARIABLE "__builtin_va_start" as a1), args) ->
       if not ctx.ctx_vararg then
         error "'va_start' used in function with fixed args";
-      let b1,env = elab env a1 in
-      let b2,env = elab env a2 in
-      let _b3,env = elab env a3 in
-      { edesc = ECall(b1, [b2]);
-        etyp = TVoid [] },env
+      let b1, env = elab env a1 in
+      begin match args with
+        | [a2; a3] ->
+          let b2,env = elab env a2 in
+          let _b3,env = elab env a3 in
+          { edesc = ECall(b1, [b2]);
+            etyp = TVoid [] },env
+        | _ -> fatal_error "'__builtin_va_start' expects 2 arguments"
+      end
 
   | BUILTIN_VA_ARG (a2, a3) ->
       let ident =
@@ -1811,6 +1838,16 @@ let elab_expr ctx loc env a =
         warning Varargs "%a is promoted to %a when passed through '...'. You should pass %a, not %a, to 'va_arg'"
           (print_typ env) ty (print_typ env) ty'  (print_typ env) ty'  (print_typ env) ty;
       { edesc = ECall(ident, [b2; b3]); etyp = ty },env
+
+  | CALL(VARIABLE "__builtin_constant_p", al) ->
+      begin match al with
+      | [a1] ->
+          let b1,env = elab env a1 in
+          let v = if Ceval.is_constant_expr env b1 then 1L else 0L in
+          intconst v IInt, env
+      | _ ->
+          fatal_error "'__builtin_constant_p' expects one argument"
+      end
 
   | CALL((VARIABLE "__builtin_sel" as a0), al) ->
       begin match al with
@@ -2085,7 +2122,7 @@ let elab_expr ctx loc env a =
             | _, _ -> fatal_error "invalid operands to binary '+' (%a and %a)"
                   (print_typ env) b1.etyp (print_typ env) b2.etyp
           in
-          check_ptr_arith env ty '+';
+          check_ptr_arith env ty "binary '+'";
           TPtr(ty, [])
         end in
       { edesc = EBinop(Oadd, b1, b2, tyres); etyp = tyres },env
@@ -2100,20 +2137,20 @@ let elab_expr ctx loc env a =
         end else begin
           match wrap unroll loc env b1.etyp, wrap  unroll loc env b2.etyp with
           | (TPtr(ty, a) | TArray(ty, _, a)), (TInt _ | TEnum _) ->
-              if not (wrap pointer_arithmetic_ok loc env ty) then
-                error "illegal pointer arithmetic in binary '-'";
+              check_ptr_arith env ty "binary '-'";
               (TPtr(ty, []), TPtr(ty, []))
           | (TPtr(ty1, a1) | TArray(ty1, _, a1)),
             (TPtr(ty2, a2) | TArray(ty2, _, a2)) ->
               if not (compatible_types AttrIgnoreAll env ty1 ty2) then
                 error "%a and %a are not pointers to compatible types"
                    (print_typ env) b1.etyp (print_typ env) b1.etyp;
-              check_ptr_arith env ty1 '-';
-              check_ptr_arith env ty2 '-';
+              check_ptr_arith env ty1 "binary '-'";
+              check_ptr_arith env ty2 "binary '-'";
               if wrap sizeof loc env ty1 = Some 0 then
                 error "subtraction between two pointers to zero-sized objects";
               (TPtr(ty1, []), TInt(ptrdiff_t_ikind(), []))
-          | _, _ -> fatal_error "invalid operands to binary '-' (%a and %a)"
+          | _, _ ->
+              fatal_error "invalid operands to binary '-' (%a and %a)"
                 (print_typ env) b1.etyp (print_typ env) b2.etyp
         end in
       { edesc = EBinop(Osub, b1, b2, tyop); etyp = tyres },env
@@ -2271,6 +2308,11 @@ let elab_expr ctx loc env a =
       error "expression is not assignable";
     if not (is_scalar_type env b1.etyp) then
       error "cannot %s value of type %a" msg (print_typ env) b1.etyp;
+    begin match unroll env b1.etyp with
+    | TPtr (ty, _) | TArray (ty, _ , _) ->
+      check_ptr_arith env ty ("unary " ^ msg)
+    | _ -> ()
+    end;
     { edesc = EUnop(op, b1); etyp = b1.etyp },env
 
 (* Elaboration of binary operators over integers *)
@@ -2627,6 +2669,8 @@ let elab_fundef genv spec name defs body loc =
        and structs and unions defined in the parameter list. *)
   let (fun_id, sto, inline, noret, ty, kr_params, genv, lenv) =
     elab_fundef_name genv spec name in
+  if Env.is_builtin fun_id.C.name then
+    error loc "definition of builtin function '%s'" fun_id.C.name;
   let s = fun_id.C.name in
   if sto = Storage_auto || sto = Storage_register then
     fatal_error loc "invalid storage class %s on function"
@@ -2817,6 +2861,7 @@ let elab_definition (for_loop: bool) (local: bool) (nonstatic_inline: bool)
   (* "int f(int x) { ... }" *)
   (* "int f(x, y) double y; { ... }" *)
   | FUNDEF(spec, name, defs, body, loc) ->
+      (* This should actually never be triggered, catched by pre-parser *)
       if local then error loc "function definition is not allowed here";
       let env1 = elab_fundef env spec name defs body loc in
       ([], env1)
@@ -2827,7 +2872,15 @@ let elab_definition (for_loop: bool) (local: bool) (nonstatic_inline: bool)
 
   (* pragma *)
   | PRAGMA(s, loc) ->
-      emit_elab env loc (Gpragma s);
+      if local then
+        warning loc Unnamed "pragmas are ignored inside functions"
+      else
+        emit_elab env loc (Gpragma s);
+      ([], env)
+
+  (* static assertion *)
+  | STATIC_ASSERT(exp, loc_exp, msg, loc_msg, loc) ->
+      elab_static_assert env exp loc_exp msg loc_msg loc;
       ([], env)
 
 (* Extended asm *)

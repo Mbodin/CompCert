@@ -15,8 +15,9 @@ open Commandline
 
 (* The version string for [tool_name] *)
 let version_string tool_name =
-  if Version.buildnr <> "" && Version.tag <> "" then
-    Printf.sprintf "The CompCert %s, Release: %s, Build: %s, Tag: %s\n" tool_name Version.version Version.buildnr Version.tag
+  if Version.buildnr <> "" && Version.tag <> "" && Version.branch <> "" then
+    Printf.sprintf "The CompCert %s, Release: %s, Build: %s, Tag: %s, Branch: %s\n"
+      tool_name Version.version Version.buildnr Version.tag Version.branch
   else
     Printf.sprintf "The CompCert %s, version %s\n" tool_name Version.version
 
@@ -26,7 +27,7 @@ let print_version_and_exit tool_name () =
 
 let version_options tool_name =
   [ Exact "-version", Unit (print_version_and_exit tool_name);
-    Exact "--version", Unit (print_version_and_exit tool_name);]
+    Exact "--version", Unit (print_version_and_exit tool_name) ]
 
 (* Language support options *)
 
@@ -86,4 +87,4 @@ let general_options =
     Exact "-target", Ignore;(* Ignore option since it is already handled *)
     Exact "-v", Set option_v;
     Exact "-stdlib", String(fun s -> stdlib_path := s);
-    Exact "-timings", Set option_timings;]
+    Exact "-timings", Set option_timings ]
