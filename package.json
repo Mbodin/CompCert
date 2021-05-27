@@ -57,7 +57,7 @@
 					"COQPATH": "#{@opam/coq.lib}/coq/user-contrib/"
 				},
 				"build": [
-						["./configure", "--libdir=#{self.install}/coq/Flocq"],
+						["./configure", "--COQUSERCONTRIB=#{self.install}/coq"],
 						["./remake", "--jobs=2"],
 						["./remake", "install"]
 					]
