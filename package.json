@@ -32,7 +32,7 @@
 		"@opam/menhir": ">=20190626 <20200123",
 		"@opam/depgraph": "*",
 		"@opam/dune": ">=2.0",
-		"coq-flocq": "3.2.0"
+		"coq-flocq": "3.4.0"
 	},
 	"devDependencies": {
     "@opam/merlin": "*",
@@ -43,8 +43,8 @@
 	},
 	"resolutions": {
 		"coq-flocq": {
-			"source": "git:https://gitlab.inria.fr/flocq/flocq.git#a9be51660cd865d323b0b3bbb9faa793856ea0de",
-			"version": "3.2.0",
+			"source": "git:https://gitlab.inria.fr/flocq/flocq.git#c9353b99debd7b8533c2558b8523d3946831f000",
+			"version": "3.4.0",
 			"override": {
 				 "dependencies": {
 					  "ocaml": "*",
