@@ -59,6 +59,7 @@
 					"DESTDIR": ""
 				},
 				"build": [
+						["autoconf"],
 						["./configure"],
 						["./remake", "--jobs=2"],
 						["./remake", "install"]
